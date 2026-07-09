@@ -1,11 +1,133 @@
-PS C:\Users\USER\Desktop\BookStore> git push -u origin main
-Enumerating objects: 12, done.
-Counting objects: 100% (12/12), done.
-Delta compression using up to 12 threads
-Compressing objects: 100% (10/10), done.
-Writing objects: 100% (12/12), 24.05 KiB | 1.27 MiB/s, done.
-Total 12 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
-To https://github.com/Fatima200-da/vibebook-backend.git
- * [new branch]      main -> main
-branch 'main' set up to track 'origin/main'.
-PS C:\Users\USER\Desktop\BookStore> 
+# VibeBook Backend
+
+A complete RESTful backend API for the VibeBook Album System built with Node.js, Express.js, Prisma ORM and PostgreSQL.
+
+## Tech Stack
+
+- Node.js
+- Express.js
+- PostgreSQL
+- Prisma ORM
+- JWT Authentication
+- Bcrypt
+- Multer
+- REST API
+
+---
+
+## Features
+
+### Authentication
+- User Register
+- User Login
+- Admin Login
+- JWT Authentication
+
+### Dashboard
+- Dashboard Statistics
+- Total Orders
+- Total Users
+- Total Albums
+- Sales Summary
+
+### Products
+- Create Product
+- Update Product
+- Delete Product
+- Product Image Upload
+
+### Categories
+- Full CRUD
+
+### Covers
+- Full CRUD
+
+### Templates
+- JSON Template Support
+- Thumbnail Upload
+- Full CRUD
+
+### Album Editor
+- Create Album
+- Update Album
+- Delete Album
+- Album Pages
+- Photos
+- Text Layers
+- Apply Template
+- Apply Cover
+- Autosave
+
+### Orders
+- List Orders
+- Update Status
+- Delete Order
+
+### Settings
+- Company Settings
+- Social Media
+- Logo
+
+### Upload
+- Image Upload API
+
+---
+
+## Installation
+
+```bash
+npm install
+```
+
+Create a `.env` file:
+
+```env
+DATABASE_URL=your_database_url
+JWT_SECRET=your_secret_key
+PORT=5000
+```
+
+Generate Prisma Client:
+
+```bash
+npx prisma generate
+```
+
+Run the server:
+
+```bash
+npm run dev
+```
+
+---
+
+## API Documentation
+
+See:
+
+```
+API_DOCUMENTATION.md
+```
+
+---
+
+## Project Structure
+
+```
+src/
+ ├── config/
+ ├── controllers/
+ ├── middleware/
+ ├── routes/
+ ├── server.js
+ ├── app.js
+
+prisma/
+uploads/
+```
+
+---
+
+## Author
+
+Fatimə Məmmədova
