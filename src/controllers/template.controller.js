@@ -1,228 +1,274 @@
 const prisma = require("../config/prisma");
 
 
-// GET ALL TEMPLATES
-exports.getTemplates = async (req,res)=>{
+// =======================
+// APPLY TEMPLATE TO ALBUM
+// =======================
 
-    try{
+exports.applyTemplate = async (req, res) => {
 
-        const templates = await prisma.templates.findMany({
-            include:{
-                products:true
-            }
-        });
+    try {
 
-
-        res.json({
-            success:true,
-            data:templates
-        });
+        const { id } = req.params;
+        const { album_id } = req.body;
 
 
-    }catch(err){
-
-        console.log(err);
-
-        res.status(500).json({
-            success:false,
-            message:"Server xətası"
-        });
-
-    }
-
-};
-
-
-
-
-// GET SINGLE TEMPLATE
-exports.getTemplateById = async(req,res)=>{
-
-    try{
-
+        // Find template
         const template = await prisma.templates.findUnique({
 
-            where:{
-                id:req.params.id
-            },
-
-            include:{
-                products:true
+            where: {
+                id
             }
 
         });
 
 
-        if(!template){
+        if (!template) {
 
             return res.status(404).json({
-                success:false,
-                message:"Template tapılmadı"
+
+                success: false,
+                message: "Template tapılmadı"
+
             });
 
         }
 
 
-        res.json({
-            success:true,
-            data:template
-        });
 
+        // Find album
+        const album = await prisma.albums.findUnique({
 
-    }catch(err){
-
-        console.log(err);
-
-        res.status(500).json({
-            success:false,
-            message:"Server xətası"
-        });
-
-    }
-
-};
-
-
-
-
-
-// CREATE TEMPLATE
-exports.createTemplate = async(req,res)=>{
-
-    try{
-
-        const {
-            product_id,
-            title,
-            thumbnail,
-            json_data
-        } = req.body;
-
-
-
-        const template = await prisma.templates.create({
-
-            data:{
-                product_id,
-                title,
-                thumbnail,
-                json_data
+            where: {
+                id: album_id
             }
 
         });
 
 
 
-        res.status(201).json({
+        if (!album) {
 
-            success:true,
-            data:template
+            return res.status(404).json({
+
+                success:false,
+                message:"Album tapılmadı"
+
+            });
+
+        }
+
+
+
+        // Delete old pages
+        const oldPages = await prisma.album_pages.findMany({
+
+            where:{
+                album_id
+            },
+
+            select:{
+                id:true
+            }
 
         });
 
 
 
-    }catch(err){
+        const pageIds = oldPages.map(page => page.id);
+
+
+
+        await prisma.photos.deleteMany({
+
+            where:{
+                album_page_id:{
+                    in:pageIds
+                }
+            }
+
+        });
+
+
+
+        await prisma.text_layers.deleteMany({
+
+            where:{
+                album_page_id:{
+                    in:pageIds
+                }
+            }
+
+        });
+
+
+
+        await prisma.album_pages.deleteMany({
+
+            where:{
+                album_id
+            }
+
+        });
+
+
+
+        // Update album template
+        await prisma.albums.update({
+
+            where:{
+                id:album_id
+            },
+
+            data:{
+                template_id:id
+            }
+
+        });
+
+
+
+        const json = template.json_data;
+
+
+        const pagesCount = json.pages || 0;
+
+
+
+        // Create pages
+
+        for(let i = 1; i <= pagesCount; i++){
+
+
+            const newPage = await prisma.album_pages.create({
+
+                data:{
+
+                    album_id,
+
+                    page_number:i,
+
+                    background:json.background || null
+
+                }
+
+            });
+
+
+
+            // Create elements
+
+            for(const element of json.elements || []){
+
+
+                if(element.type === "photo"){
+
+
+                    await prisma.photos.create({
+
+                        data:{
+
+
+                            album_page_id:newPage.id,
+
+                            image_url:"",
+
+                            x:element.x || 0,
+
+                            y:element.y || 0,
+
+                            width:100,
+
+                            height:100,
+
+                            rotation:0,
+
+                            scale:1,
+
+                            opacity:1,
+
+                            z_index:0
+
+
+                        }
+
+                    });
+
+
+                }
+
+
+
+                if(element.type === "text"){
+
+
+                    await prisma.text_layers.create({
+
+                        data:{
+
+
+                            album_page_id:newPage.id,
+
+                            content:element.content || "",
+
+                            font:element.font || "Arial",
+
+                            color:element.color || "#000000",
+
+                            size:element.size || 20,
+
+                            x:element.x || 0,
+
+                            y:element.y || 0,
+
+                            rotation:0
+
+
+                        }
+
+                    });
+
+
+                }
+
+
+            }
+
+
+        }
+
+
+
+        return res.json({
+
+            success:true,
+
+            message:"Template uğurla tətbiq edildi",
+
+            album_id,
+
+            pages_created:pagesCount
+
+        });
+
+
+
+    } catch(err) {
+
 
         console.log(err);
 
-        res.status(500).json({
+
+        return res.status(500).json({
 
             success:false,
+
             message:err.message
 
         });
 
-    }
-
-};
-
-
-
-
-
-// UPDATE TEMPLATE
-exports.updateTemplate = async(req,res)=>{
-
-    try{
-
-
-        const template = await prisma.templates.update({
-
-            where:{
-                id:req.params.id
-            },
-
-            data:req.body
-
-        });
-
-
-
-        res.json({
-
-            success:true,
-            data:template
-
-        });
-
-
-
-    }catch(err){
-
-        console.log(err);
-
-        res.status(500).json({
-
-            success:false,
-            message:"Server xətası"
-
-        });
 
     }
 
-};
-
-
-
-
-
-// DELETE TEMPLATE
-exports.deleteTemplate = async(req,res)=>{
-
-    try{
-
-
-        await prisma.templates.delete({
-
-            where:{
-                id:req.params.id
-            }
-
-        });
-
-
-
-        res.json({
-
-            success:true,
-            message:"Template silindi"
-
-        });
-
-
-
-    }catch(err){
-
-        console.log(err);
-
-        res.status(500).json({
-
-            success:false,
-            message:"Server xətası"
-
-        });
-
-    }
 
 };

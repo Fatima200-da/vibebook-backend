@@ -6,38 +6,50 @@ const auth = require("../middleware/auth.middleware");
 
 const controller = require("../controllers/editor.controller");
 
+/**
+ * @swagger
+ * tags:
+ *   name: Editor
+ *   description: Album Editor APIs
+ */
 
-// =======================
-// GET ALBUM
-// =======================
-
+/**
+ * @swagger
+ * /api/editor/albums/{id}:
+ *   get:
+ *     summary: Get album editor
+ *     tags: [Editor]
+ */
 router.get(
     "/albums/:id",
     auth,
     controller.getAlbum
 );
 
-
-// =======================
-// CREATE PAGE
-// =======================
-
+/**
+ * @swagger
+ * /api/editor/albums/{id}/pages:
+ *   post:
+ *     summary: Create page
+ *     tags: [Editor]
+ */
 router.post(
     "/albums/:id/pages",
     auth,
     controller.createPage
 );
 
-
-// =======================
-// DELETE PAGE
-// =======================
-
+/**
+ * @swagger
+ * /api/editor/pages/{id}:
+ *   delete:
+ *     summary: Delete page
+ *     tags: [Editor]
+ */
 router.delete(
     "/pages/:id",
     auth,
     controller.deletePage
 );
-
 
 module.exports = router;

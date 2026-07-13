@@ -1,9 +1,8 @@
 const prisma = require("../config/prisma");
 
-
-// =======================
-// ADD TEXT TO PAGE
-// =======================
+// ======================
+// ADD TEXT
+// ======================
 
 exports.addText = async (req, res) => {
 
@@ -23,7 +22,6 @@ exports.addText = async (req, res) => {
             letter_spacing
         } = req.body;
 
-
         const text = await prisma.text_layers.create({
 
             data: {
@@ -32,9 +30,9 @@ exports.addText = async (req, res) => {
 
                 content,
 
-                font: font || "Arial",
+                font,
 
-                color: color || "#000000",
+                color,
 
                 size,
 
@@ -42,40 +40,35 @@ exports.addText = async (req, res) => {
 
                 y,
 
-                rotation: rotation || 0,
+                rotation: rotation ?? 0,
 
-                font_weight: font_weight || "normal",
+                font_weight: font_weight ?? "normal",
 
-                alignment: alignment || "left",
+                alignment: alignment ?? "left",
 
-                line_height: line_height || 1.2,
+                line_height: line_height ?? 1.2,
 
-                letter_spacing: letter_spacing || 0
+                letter_spacing: letter_spacing ?? 0
 
             }
 
         });
-
 
         res.status(201).json({
 
-            success:true,
-
-            data:text
+            success: true,
+            data: text
 
         });
 
-
-
-    } catch(err) {
+    } catch (err) {
 
         console.log(err);
 
         res.status(500).json({
 
-            success:false,
-
-            message:err.message
+            success: false,
+            message: err.message
 
         });
 
@@ -83,52 +76,41 @@ exports.addText = async (req, res) => {
 
 };
 
-
-
-
-
-// =======================
+// ======================
 // UPDATE TEXT
-// =======================
+// ======================
 
-exports.updateText = async(req,res)=>{
+exports.updateText = async (req, res) => {
 
-    try{
-
+    try {
 
         const text = await prisma.text_layers.update({
 
-            where:{
-                id:req.params.id
+            where: {
+
+                id: req.params.id
+
             },
 
-
-            data:req.body
+            data: req.body
 
         });
-
-
 
         res.json({
 
-            success:true,
-
-            data:text
+            success: true,
+            data: text
 
         });
 
-
-
-    }catch(err){
+    } catch (err) {
 
         console.log(err);
 
-
         res.status(500).json({
 
-            success:false,
-
-            message:err.message
+            success: false,
+            message: err.message
 
         });
 
@@ -136,49 +118,39 @@ exports.updateText = async(req,res)=>{
 
 };
 
-
-
-
-
-// =======================
+// ======================
 // DELETE TEXT
-// =======================
+// ======================
 
-exports.deleteText = async(req,res)=>{
+exports.deleteText = async (req, res) => {
 
-    try{
-
+    try {
 
         await prisma.text_layers.delete({
 
-            where:{
-                id:req.params.id
+            where: {
+
+                id: req.params.id
+
             }
 
         });
 
-
-
         res.json({
 
-            success:true,
-
-            message:"Yazı silindi"
+            success: true,
+            message: "Text silindi."
 
         });
 
-
-
-    }catch(err){
+    } catch (err) {
 
         console.log(err);
 
-
         res.status(500).json({
 
-            success:false,
-
-            message:err.message
+            success: false,
+            message: err.message
 
         });
 

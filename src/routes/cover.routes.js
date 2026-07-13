@@ -5,45 +5,67 @@ const router = express.Router();
 const coverController = require("../controllers/cover.controller");
 
 const auth = require("../middleware/auth.middleware");
+const admin = require("../middleware/admin.middleware");
 
 
-// bütün coverlər
+// =======================
+// GET ALL COVERS
+// =======================
+
 router.get(
     "/",
+    auth,
+    admin,
     coverController.getCovers
 );
 
 
-// bir cover
+// =======================
+// GET COVER BY ID
+// =======================
+
 router.get(
     "/:id",
+    auth,
+    admin,
     coverController.getCoverById
 );
 
 
-// yarat
+// =======================
+// CREATE COVER
+// =======================
+
 router.post(
     "/",
     auth,
+    admin,
     coverController.createCover
 );
 
 
-// update
+// =======================
+// UPDATE COVER
+// =======================
+
 router.put(
     "/:id",
     auth,
+    admin,
     coverController.updateCover
 );
 
 
-// delete
+// =======================
+// DELETE COVER
+// =======================
+
 router.delete(
     "/:id",
     auth,
+    admin,
     coverController.deleteCover
 );
-
 
 
 module.exports = router;

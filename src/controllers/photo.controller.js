@@ -1,9 +1,8 @@
 const prisma = require("../config/prisma");
 
-
-// =======================
-// ADD PHOTO TO PAGE
-// =======================
+// ======================
+// ADD PHOTO
+// ======================
 
 exports.addPhoto = async (req, res) => {
 
@@ -15,9 +14,11 @@ exports.addPhoto = async (req, res) => {
             y,
             width,
             height,
-            rotation
+            rotation,
+            scale,
+            opacity,
+            z_index
         } = req.body;
-
 
         const photo = await prisma.photos.create({
 
@@ -28,24 +29,32 @@ exports.addPhoto = async (req, res) => {
                 image_url,
 
                 x,
+
                 y,
+
                 width,
+
                 height,
 
-                rotation: rotation || 0
+                rotation: rotation ?? 0,
+
+                scale: scale ?? 1,
+
+                opacity: opacity ?? 1,
+
+                z_index: z_index ?? 0
 
             }
 
         });
 
-
         res.status(201).json({
 
             success: true,
+
             data: photo
 
         });
-
 
     } catch (err) {
 
@@ -54,6 +63,7 @@ exports.addPhoto = async (req, res) => {
         res.status(500).json({
 
             success: false,
+
             message: err.message
 
         });
@@ -63,51 +73,43 @@ exports.addPhoto = async (req, res) => {
 };
 
 
-
-
-// =======================
+// ======================
 // UPDATE PHOTO
-// =======================
+// ======================
 
 exports.updatePhoto = async (req, res) => {
 
     try {
 
-
         const photo = await prisma.photos.update({
 
             where: {
-                id: req.params.id
-            },
 
+                id: req.params.id
+
+            },
 
             data: req.body
 
         });
 
-
-
         res.json({
 
-            success:true,
+            success: true,
 
-            data:photo
+            data: photo
 
         });
 
-
-
-    } catch(err) {
-
+    } catch (err) {
 
         console.log(err);
 
-
         res.status(500).json({
 
-            success:false,
+            success: false,
 
-            message:err.message
+            message: err.message
 
         });
 
@@ -116,45 +118,41 @@ exports.updatePhoto = async (req, res) => {
 };
 
 
-
-
-// =======================
+// ======================
 // DELETE PHOTO
-// =======================
+// ======================
 
-exports.deletePhoto = async(req,res)=>{
+exports.deletePhoto = async (req, res) => {
 
-    try{
-
+    try {
 
         await prisma.photos.delete({
 
-            where:{
-                id:req.params.id
+            where: {
+
+                id: req.params.id
+
             }
 
         });
 
-
         res.json({
 
-            success:true,
+            success: true,
 
-            message:"Şəkil silindi"
+            message: "Photo silindi."
 
         });
 
-
-
-    }catch(err){
+    } catch (err) {
 
         console.log(err);
 
         res.status(500).json({
 
-            success:false,
+            success: false,
 
-            message:err.message
+            message: err.message
 
         });
 

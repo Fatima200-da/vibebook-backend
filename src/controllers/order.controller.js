@@ -9,22 +9,55 @@ exports.getOrders = async (req, res) => {
 
     try {
 
+        const {
+            page = 1,
+            limit = 20,
+            status,
+            sort = "newest"
+        } = req.query;
+
+        const where = {};
+
+        if (status) {
+            where.status = status;
+        }
+
+        const orderBy =
+            sort === "oldest"
+                ? { created_at: "asc" }
+                : { created_at: "desc" };
+
+        const total = await prisma.orders.count({
+            where
+        });
+
         const orders = await prisma.orders.findMany({
+
+            where,
 
             include: {
                 users: true,
                 albums: true
             },
 
-            orderBy: {
-                created_at: "desc"
-            }
+            orderBy,
+
+            skip: (Number(page) - 1) * Number(limit),
+
+            take: Number(limit)
 
         });
 
         res.json({
 
             success: true,
+
+            total,
+
+            page: Number(page),
+
+            limit: Number(limit),
+
             data: orders
 
         });
@@ -196,6 +229,170 @@ exports.deleteOrder = async (req, res) => {
         res.status(500).json({
 
             success: false,
+            message: err.message
+
+        });
+
+    }
+
+};
+// =======================
+// SEARCH ORDERS
+// =======================
+
+exports.searchOrders = async (req, res) => {
+
+    try {
+
+        const {
+            q,
+            status,
+            page = 1,
+            limit = 20,
+            sort = "newest"
+        } = req.query;
+
+        const where = {};
+
+        if (q) {
+
+            where.OR = [
+
+                {
+                    customer_name: {
+                        contains: q,
+                        mode: "insensitive"
+                    }
+                },
+
+                {
+                    customer_email: {
+                        contains: q,
+                        mode: "insensitive"
+                    }
+                },
+
+                {
+                    customer_phone: {
+                        contains: q,
+                        mode: "insensitive"
+                    }
+                }
+
+            ];
+
+        }
+
+        if (status) {
+
+            where.status = status;
+
+        }
+
+        const orderBy =
+            sort === "oldest"
+                ? { created_at: "asc" }
+                : { created_at: "desc" };
+
+        const orders = await prisma.orders.findMany({
+
+            where,
+
+            include: {
+
+                users: true,
+                albums: true
+
+            },
+
+            orderBy,
+
+            skip: (Number(page) - 1) * Number(limit),
+
+            take: Number(limit)
+
+        });
+
+        const total = await prisma.orders.count({
+
+            where
+
+        });
+
+        res.json({
+
+            success: true,
+
+            total,
+
+            page: Number(page),
+
+            limit: Number(limit),
+
+            data: orders
+
+        });
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.status(500).json({
+
+            success: false,
+
+            message: err.message
+
+        });
+
+    }
+
+};
+// =======================
+// SEARCH ORDERS
+// =======================
+
+exports.searchOrders = async (req, res) => {
+
+    try {
+
+        const { q } = req.query;
+
+
+        const orders = await prisma.orders.findMany({
+
+            where: {
+
+                status: q
+
+            },
+
+            include: {
+
+                albums: true,
+                payments: true
+
+            }
+
+        });
+
+
+        res.json({
+
+            success: true,
+            total: orders.length,
+            data: orders
+
+        });
+
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.status(500).json({
+
+            success:false,
             message: err.message
 
         });

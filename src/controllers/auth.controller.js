@@ -169,3 +169,96 @@ exports.login = async (req, res) => {
     }
 
 };
+// =======================
+// ADMIN LOGIN
+// =======================
+
+exports.adminLogin = async (req, res) => {
+
+    try {
+
+        const { email, password } = req.body;
+
+        const admin = await prisma.admin_users.findUnique({
+
+            where: {
+                email
+            }
+
+        });
+
+        if (!admin) {
+
+            return res.status(401).json({
+
+                success: false,
+                message: "Email və ya şifrə yanlışdır."
+
+            });
+
+        }
+
+        const match = await bcrypt.compare(password, admin.password);
+
+        if (!match) {
+
+            return res.status(401).json({
+
+                success: false,
+                message: "Email və ya şifrə yanlışdır."
+
+            });
+
+        }
+
+        const token = jwt.sign(
+
+            {
+
+                id: admin.id,
+                email: admin.email,
+                role: admin.role
+
+            },
+
+            process.env.JWT_SECRET,
+
+            {
+
+                expiresIn: "7d"
+
+            }
+
+        );
+
+        res.json({
+
+            success: true,
+
+            token,
+
+            admin: {
+
+                id: admin.id,
+                full_name: admin.full_name,
+                email: admin.email,
+                role: admin.role
+
+            }
+
+        });
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.status(500).json({
+
+            success: false,
+            message: err.message
+
+        });
+
+    }
+
+};
