@@ -1,19 +1,12 @@
 const request = require("supertest");
 const prisma = require("../src/config/prisma");
-let categoryId;
 const app = require("../src/app");
-const category = await prisma.categories.findFirst({
-    where: {
-        name: "Wedding"
-    }
-});
-
-categoryId = category.id;
 
 describe("Products API", () => {
 
     let token;
     let productId;
+    let categoryId;
 
     beforeAll(async () => {
 
@@ -27,6 +20,16 @@ describe("Products API", () => {
         expect(login.status).toBe(200);
 
         token = login.body.token;
+
+        const category = await prisma.categories.findFirst({
+            where: {
+                name: "Wedding"
+            }
+        });
+
+        expect(category).not.toBeNull();
+
+        categoryId = category.id;
 
     });
 
@@ -59,7 +62,7 @@ describe("Products API", () => {
             .post("/api/products")
             .set("Authorization", `Bearer ${token}`)
             .send({
-                category_id: category_id: categoryId,
+                category_id: categoryId,
                 title: "Jest Test Product",
                 description: "Created by Jest",
                 price: 150,
@@ -123,6 +126,8 @@ describe("Products API", () => {
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
+
+        expect(Array.isArray(response.body.data)).toBe(true);
 
     });
 
