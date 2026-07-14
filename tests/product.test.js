@@ -1,6 +1,14 @@
 const request = require("supertest");
-
+const prisma = require("../src/config/prisma");
+let categoryId;
 const app = require("../src/app");
+const category = await prisma.categories.findFirst({
+    where: {
+        name: "Wedding"
+    }
+});
+
+categoryId = category.id;
 
 describe("Products API", () => {
 
@@ -51,7 +59,7 @@ describe("Products API", () => {
             .post("/api/products")
             .set("Authorization", `Bearer ${token}`)
             .send({
-                category_id: "ab2c665b-21c0-4866-b900-2a07fde05eb5",
+                category_id: category_id: categoryId,
                 title: "Jest Test Product",
                 description: "Created by Jest",
                 price: 150,
