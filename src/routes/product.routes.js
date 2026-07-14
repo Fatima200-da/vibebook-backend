@@ -37,7 +37,12 @@ router.get(
     admin,
     productController.getProducts
 );
-
+router.get(
+    "/trash",
+    auth,
+    admin,
+    productController.getTrashProducts
+);
 /**
  * @swagger
  * /api/products/search:
@@ -81,6 +86,8 @@ router.get(
     validate(productValidation.search),
     productController.searchProducts
 );
+
+
 
 /**
  * @swagger
@@ -147,5 +154,10 @@ router.delete(
     admin,
     productController.deleteProduct
 );
-
+router.patch(
+    "/:id/restore",
+    auth,
+    admin,
+    productController.restoreProduct
+);
 module.exports = router;

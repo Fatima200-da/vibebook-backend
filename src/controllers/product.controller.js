@@ -1,5 +1,5 @@
 const prisma = require("../config/prisma");
-
+const logAction = require("../utils/auditLogger");
 
 // =======================
 // GET ALL PRODUCTS
@@ -64,28 +64,33 @@ exports.getProducts = async (req, res) => {
 
 
 
-        const where = search ? {
+        const where = {
 
-            OR:[
+    is_deleted: false
 
-                {
-                    title:{
-                        contains:search,
-                        mode:"insensitive"
-                    }
-                },
+};
 
+if (search) {
 
-                {
-                    description:{
-                        contains:search,
-                        mode:"insensitive"
-                    }
-                }
+    where.OR = [
 
-            ]
+        {
+            title: {
+                contains: search,
+                mode: "insensitive"
+            }
+        },
 
-        } : {};
+        {
+            description: {
+                contains: search,
+                mode: "insensitive"
+            }
+        }
+
+    ];
+
+}
 
 
 
@@ -171,19 +176,21 @@ exports.getProduct = async(req,res)=>{
 
     try{
 
+const product = await prisma.products.findFirst({
 
-        const product = await prisma.products.findUnique({
+    where:{
 
-            where:{
-                id:req.params.id
-            },
+        id:req.params.id,
 
+        is_deleted:false
 
-            include:{
-                categories:true
-            }
+    },
 
-        });
+    include:{
+        categories:true
+    }
+
+});
 
 
 
@@ -300,7 +307,25 @@ exports.createProduct = async(req,res)=>{
 
 
         });
+        await logAction({
 
+    adminId: req.user.id,
+
+    action: "CREATE_PRODUCT",
+
+    entity: "PRODUCT",
+
+    entityId: product.id,
+
+    details: {
+
+        title: product.title,
+
+        price: product.price
+
+    }
+
+});
 
 
 
@@ -410,7 +435,23 @@ exports.updateProduct = async(req,res)=>{
             data
 
         });
+        await logAction({
 
+    adminId: req.user.id,
+
+    action: "UPDATE_PRODUCT",
+
+    entity: "PRODUCT",
+
+    entityId: product.id,
+
+    details: {
+
+        title: product.title
+
+    }
+
+});
 
 
 
@@ -450,55 +491,99 @@ exports.updateProduct = async(req,res)=>{
 
 
 // =======================
-// DELETE PRODUCT
+// SOFT DELETE PRODUCT
 // =======================
 
-exports.deleteProduct = async(req,res)=>{
+exports.deleteProduct = async (req, res) => {
 
+    try {
 
-    try{
+        const product = await prisma.products.findUnique({
 
-
-        await prisma.products.delete({
-
-            where:{
-                id:req.params.id
+            where: {
+                id: req.params.id
             }
 
         });
 
+        if (!product) {
 
+            return res.status(404).json({
 
+                success: false,
 
+                message: "Product not found"
 
-        res.json({
+            });
 
-            success:true,
+        }
 
-            message:"Product deleted successfully"
+        if (product.is_deleted) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Product already deleted"
+
+            });
+
+        }
+
+        await prisma.products.update({
+
+            where: {
+                id: req.params.id
+            },
+
+            data: {
+
+                is_deleted: true
+
+            }
 
         });
+        await logAction({
 
+    adminId: req.user.id,
 
+    action: "DELETE_PRODUCT",
 
+    entity: "PRODUCT",
 
-    }catch(error){
+    entityId: product.id,
 
+    details: {
 
-        res.status(500).json({
-
-            success:false,
-
-            message:error.message
-
-        });
-
+        title: product.title
 
     }
 
+});
+
+        return res.json({
+
+            success: true,
+
+            message: "Product moved to trash"
+
+        });
+
+    }
+
+    catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
 
 };
-
 
 
 
@@ -553,9 +638,11 @@ exports.searchProducts = async(req,res)=>{
 
 
 
-        const where={};
+        const where = {
 
+    is_deleted: false
 
+};
 
 
 
@@ -712,5 +799,197 @@ exports.searchProducts = async(req,res)=>{
 
     }
 
+
+};
+// =======================
+// RESTORE PRODUCT
+// =======================
+
+exports.restoreProduct = async (req, res) => {
+
+    try {
+
+        const product = await prisma.products.findUnique({
+
+            where: {
+
+                id: req.params.id
+
+            }
+
+        });
+
+        if (!product) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Product not found"
+
+            });
+
+        }
+
+        if (!product.is_deleted) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Product is already active"
+
+            });
+
+        }
+
+        const restored = await prisma.products.update({
+
+            where: {
+
+                id: req.params.id
+
+            },
+
+            data: {
+
+                is_deleted: false
+
+            }
+
+        });
+        await logAction({
+
+    adminId: req.user.id,
+
+    action: "RESTORE_PRODUCT",
+
+    entity: "PRODUCT",
+
+    entityId: restored.id,
+
+    details: {
+
+        title: restored.title
+
+    }
+
+});
+
+        return res.json({
+
+            success: true,
+
+            message: "Product restored successfully",
+
+            data: restored
+
+        });
+
+    }
+
+    catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+// =======================
+// GET TRASH PRODUCTS
+// =======================
+
+exports.getTrashProducts = async (req, res) => {
+
+    try {
+
+        let {
+
+            page = 1,
+
+            limit = 20
+
+        } = req.query;
+
+        page = Number(page);
+        limit = Number(limit);
+
+        if (page < 1) page = 1;
+        if (limit < 1) limit = 20;
+        if (limit > 100) limit = 100;
+
+        const skip = (page - 1) * limit;
+
+        const products = await prisma.products.findMany({
+
+            where: {
+
+                is_deleted: true
+
+            },
+
+            include: {
+
+                categories: true
+
+            },
+
+            orderBy: {
+
+                created_at: "desc"
+
+            },
+
+            skip,
+
+            take: limit
+
+        });
+
+        const total = await prisma.products.count({
+
+            where: {
+
+                is_deleted: true
+
+            }
+
+        });
+
+        return res.json({
+
+            success: true,
+
+            total,
+
+            page,
+
+            limit,
+
+            pages: Math.ceil(total / limit),
+
+            data: products
+
+        });
+
+    }
+
+    catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
 
 };

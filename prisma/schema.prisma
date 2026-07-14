@@ -294,3 +294,22 @@ model settings {
 
   updated_at DateTime @updatedAt
 }
+// =======================
+// AUDIT LOGS
+// =======================
+
+model audit_logs {
+  id String @id @default(uuid())
+
+  admin_id String?
+
+  action String
+
+  entity String
+
+  entity_id String?
+
+  details Json?
+
+  created_at DateTime @default(now())
+}

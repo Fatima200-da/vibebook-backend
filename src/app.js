@@ -31,8 +31,45 @@ const uploadRoutes = require("./routes/upload.routes");
 const userRoutes = require("./routes/user.routes");
 
 const healthRoutes = require("./routes/health.routes");
-
+const cors = require("cors");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
 const app = express();
+// =======================
+// SECURITY
+// =======================
+
+app.use(helmet());
+
+app.use(cors());
+
+app.use(compression());
+
+app.use(morgan("dev"));
+
+const limiter = rateLimit({
+
+    windowMs: 15 * 60 * 1000,
+
+    max: 100,
+
+    standardHeaders: true,
+
+    legacyHeaders: false,
+
+    message: {
+
+        success: false,
+
+        message: "Too many requests. Please try again later."
+
+    }
+
+});
+
+app.use("/api", limiter);
 
 // =======================
 // MIDDLEWARES
