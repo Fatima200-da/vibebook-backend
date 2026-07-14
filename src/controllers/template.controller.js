@@ -1,9 +1,9 @@
 const prisma = require("../config/prisma");
 
 
-// =======================
+// ===============================
 // APPLY TEMPLATE TO ALBUM
-// =======================
+// ===============================
 
 exports.applyTemplate = async (req, res) => {
 
@@ -13,22 +13,35 @@ exports.applyTemplate = async (req, res) => {
         const { album_id } = req.body;
 
 
-        // Find template
+        if (!album_id) {
+            return res.status(400).json({
+                success:false,
+                message:"album_id tələb olunur"
+            });
+        }
+
+
+
+        // ===============================
+        // FIND TEMPLATE
+        // ===============================
+
         const template = await prisma.templates.findUnique({
 
-            where: {
+            where:{
                 id
             }
 
         });
 
 
-        if (!template) {
+
+        if(!template){
 
             return res.status(404).json({
 
-                success: false,
-                message: "Template tapılmadı"
+                success:false,
+                message:"Template tapılmadı"
 
             });
 
@@ -36,18 +49,21 @@ exports.applyTemplate = async (req, res) => {
 
 
 
-        // Find album
+        // ===============================
+        // FIND ALBUM
+        // ===============================
+
         const album = await prisma.albums.findUnique({
 
-            where: {
-                id: album_id
+            where:{
+                id:album_id
             }
 
         });
 
 
 
-        if (!album) {
+        if(!album){
 
             return res.status(404).json({
 
@@ -60,8 +76,13 @@ exports.applyTemplate = async (req, res) => {
 
 
 
-        // Delete old pages
-        const oldPages = await prisma.album_pages.findMany({
+
+        // ===============================
+        // DELETE OLD CONTENT
+        // ===============================
+
+
+        const pages = await prisma.album_pages.findMany({
 
             where:{
                 album_id
@@ -75,80 +96,113 @@ exports.applyTemplate = async (req, res) => {
 
 
 
-        const pageIds = oldPages.map(page => page.id);
+        const pageIds = pages.map(
+            page => page.id
+        );
 
 
 
-        await prisma.photos.deleteMany({
+        if(pageIds.length){
 
-            where:{
-                album_page_id:{
-                    in:pageIds
+
+            await prisma.photos.deleteMany({
+
+                where:{
+                    album_page_id:{
+                        in:pageIds
+                    }
                 }
-            }
 
-        });
-
+            });
 
 
-        await prisma.text_layers.deleteMany({
 
-            where:{
-                album_page_id:{
-                    in:pageIds
+            await prisma.text_layers.deleteMany({
+
+                where:{
+                    album_page_id:{
+                        in:pageIds
+                    }
                 }
-            }
 
-        });
-
-
-
-        await prisma.album_pages.deleteMany({
-
-            where:{
-                album_id
-            }
-
-        });
+            });
 
 
 
-        // Update album template
+            await prisma.album_pages.deleteMany({
+
+                where:{
+                    id:{
+                        in:pageIds
+                    }
+                }
+
+            });
+
+
+        }
+
+
+
+
+
+        // ===============================
+        // UPDATE ALBUM TEMPLATE
+        // ===============================
+
+
         await prisma.albums.update({
 
             where:{
                 id:album_id
             },
 
+
             data:{
+
                 template_id:id
+
             }
 
         });
 
 
 
-        const json = template.json_data;
+
+
+        // ===============================
+        // TEMPLATE JSON
+        // ===============================
+
+
+        const json = template.json_data || {};
+
 
 
         const pagesCount = json.pages || 0;
 
 
 
-        // Create pages
-
-        for(let i = 1; i <= pagesCount; i++){
 
 
-            const newPage = await prisma.album_pages.create({
+        // ===============================
+        // CREATE NEW PAGES
+        // ===============================
+
+
+        for(let pageNumber = 1; pageNumber <= pagesCount; pageNumber++){
+
+
+            const page = await prisma.album_pages.create({
 
                 data:{
 
                     album_id,
 
-                    page_number:i,
+                    page_number:pageNumber,
 
-                    background:json.background || null
+                    background:
+                    json.background || null
 
                 }
 
@@ -156,9 +210,22 @@ exports.applyTemplate = async (req, res) => {
 
 
 
-            // Create elements
 
-            for(const element of json.elements || []){
+
+            // ===============================
+            // CREATE ELEMENTS
+            // ===============================
+
+
+            const elements = json.elements || [];
+
+
+
+            for(const element of elements){
+
+
+
+                // PHOTO
 
 
                 if(element.type === "photo"){
@@ -169,25 +236,43 @@ exports.applyTemplate = async (req, res) => {
                         data:{
 
 
-                            album_page_id:newPage.id,
+                            album_page_id:page.id,
 
-                            image_url:"",
 
-                            x:element.x || 0,
+                            image_url:
+                            element.image_url || "",
 
-                            y:element.y || 0,
 
-                            width:100,
+                            x:
+                            element.x || 0,
 
-                            height:100,
 
-                            rotation:0,
+                            y:
+                            element.y || 0,
 
-                            scale:1,
 
-                            opacity:1,
+                            width:
+                            element.width || 100,
 
-                            z_index:0
+
+                            height:
+                            element.height || 100,
+
+
+                            rotation:
+                            element.rotation || 0,
+
+
+                            scale:
+                            element.scale || 1,
+
+
+                            opacity:
+                            element.opacity || 1,
+
+
+                            z_index:
+                            element.z_index || 0
 
 
                         }
@@ -197,6 +282,11 @@ exports.applyTemplate = async (req, res) => {
 
                 }
 
+
+
+
+
+                // TEXT
 
 
                 if(element.type === "text"){
@@ -207,21 +297,35 @@ exports.applyTemplate = async (req, res) => {
                         data:{
 
 
-                            album_page_id:newPage.id,
+                            album_page_id:page.id,
 
-                            content:element.content || "",
 
-                            font:element.font || "Arial",
+                            content:
+                            element.content || "",
 
-                            color:element.color || "#000000",
 
-                            size:element.size || 20,
+                            font:
+                            element.font || "Arial",
 
-                            x:element.x || 0,
 
-                            y:element.y || 0,
+                            color:
+                            element.color || "#000000",
 
-                            rotation:0
+
+                            size:
+                            element.size || 20,
+
+
+                            x:
+                            element.x || 0,
+
+
+                            y:
+                            element.y || 0,
+
+
+                            rotation:
+                            element.rotation || 0
 
 
                         }
@@ -232,10 +336,14 @@ exports.applyTemplate = async (req, res) => {
                 }
 
 
+
             }
 
 
+
         }
+
+
 
 
 
@@ -247,26 +355,128 @@ exports.applyTemplate = async (req, res) => {
 
             album_id,
 
+            template_id:id,
+
             pages_created:pagesCount
+
 
         });
 
 
 
-    } catch(err) {
+    }
 
 
-        console.log(err);
+
+    catch(error){
+
+
+        console.log(error);
+
 
 
         return res.status(500).json({
 
             success:false,
 
-            message:err.message
+            message:error.message
 
         });
 
+
+    }
+
+
+};
+// ===============================
+// GET ALL TEMPLATES
+// ===============================
+
+exports.getTemplates = async (req,res)=>{
+
+    try{
+
+        const templates = await prisma.templates.findMany({
+            orderBy:{
+                created_at:"desc"
+            }
+        });
+
+
+        res.json({
+
+            success:true,
+            data:templates
+
+        });
+
+
+    }catch(error){
+
+        res.status(500).json({
+
+            success:false,
+            message:error.message
+
+        });
+
+    }
+
+};
+
+
+
+
+// ===============================
+// GET TEMPLATE BY ID
+// ===============================
+
+exports.getTemplateById = async(req,res)=>{
+
+
+    try{
+
+
+        const template = await prisma.templates.findUnique({
+
+            where:{
+                id:req.params.id
+            }
+
+        });
+
+
+
+        if(!template){
+
+            return res.status(404).json({
+
+                success:false,
+                message:"Template tapılmadı"
+
+            });
+
+        }
+
+
+
+        res.json({
+
+            success:true,
+            data:template
+
+        });
+
+
+
+    }catch(error){
+
+        res.status(500).json({
+
+            success:false,
+            message:error.message
+
+        });
 
     }
 

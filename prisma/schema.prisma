@@ -7,223 +7,290 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =======================
+// USERS
+// =======================
+
+model users {
+  id String @id @default(uuid())
+
+  full_name String
+
+  email String @unique
+
+  phone String?
+
+  password String
+
+  role String @default("USER")
+
+  albums albums[]
+
+  orders orders[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+}
+
+// =======================
+// ADMIN USERS
+// =======================
+
 model admin_users {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  full_name  String
-  email      String   @unique
-  password   String
-  role       String
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  id String @id @default(uuid())
 
-  @@index([email], map: "idx_admin_users_email")
+  full_name String
+
+  email String @unique
+
+  password String
+
+  role String @default("ADMIN")
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
 }
 
-model album_pages {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  album_id    String        @db.Uuid
-  page_number Int
-  background  String?
-  created_at  DateTime      @default(now()) @db.Timestamp(6)
-  updated_at  DateTime      @default(now()) @db.Timestamp(6)
-  albums      albums        @relation(fields: [album_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_album_pages_album")
-  photos      photos[]
-  text_layers text_layers[]
-
-  @@index([album_id], map: "idx_album_pages_album")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model albums {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id     String        @db.Uuid
-  product_id  String        @db.Uuid
-  cover_id    String?       @db.Uuid
-  template_id String?       @db.Uuid
-  title       String
-  total_pages Int           @default(20)
-  status      String        @default("Draft")
-  created_at  DateTime      @default(now()) @db.Timestamp(6)
-  updated_at  DateTime      @default(now()) @db.Timestamp(6)
-  album_pages album_pages[]
-  covers      covers?       @relation(fields: [cover_id], references: [id], onUpdate: NoAction, map: "fk_albums_cover")
-  products    products      @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_albums_product")
-  templates   templates?    @relation(fields: [template_id], references: [id], onUpdate: NoAction, map: "fk_albums_template")
-  users       users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_albums_user")
-  orders      orders[]
-
-  @@index([cover_id], map: "idx_albums_cover")
-  @@index([product_id], map: "idx_albums_product")
-  @@index([template_id], map: "idx_albums_template")
-  @@index([user_id], map: "idx_albums_user")
-}
+// =======================
+// CATEGORIES
+// =======================
 
 model categories {
-  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String     @unique
-  image      String?
-  created_at DateTime   @default(now()) @db.Timestamp(6)
-  updated_at DateTime   @default(now()) @db.Timestamp(6)
-  products   products[]
+  id String @id @default(uuid())
+
+  name String @unique
+
+  image String?
+
+  products products[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
 }
 
-model covers {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  product_id String   @db.Uuid
-  title      String
-  image      String
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
-  albums     albums[]
-  products   products @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_covers_product")
-
-  @@index([product_id], map: "idx_covers_product")
-}
-
-model orders {
-  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id          String     @db.Uuid
-  album_id         String     @db.Uuid
-  customer_name    String
-  customer_phone   String
-  customer_email   String     @unique
-  city             String
-  delivery_address String
-  total_price      Decimal    @db.Decimal(10, 2)
-  delivery_price   Decimal?   @default(0) @db.Decimal(10, 2)
-  payment_status   String
-  status           String
-  note             String?
-  created_at       DateTime   @default(now()) @db.Timestamp(6)
-  updated_at       DateTime   @default(now()) @db.Timestamp(6)
-  albums           albums     @relation(fields: [album_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_orders_album")
-  users            users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_orders_user")
-  payments         payments[]
-
-  @@index([album_id], map: "idx_orders_album")
-  @@index([user_id], map: "idx_orders_user")
-}
-
-model payments {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id         String    @db.Uuid
-  amount           Decimal   @db.Decimal(10, 2)
-  payment_method   String
-  payment_provider String?
-  transaction_id   String?
-  status           String
-  paid_at          DateTime? @db.Timestamp(6)
-  created_at       DateTime  @default(now()) @db.Timestamp(6)
-  updated_at       DateTime  @default(now()) @db.Timestamp(6)
-  orders           orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payments_order")
-
-  @@index([order_id], map: "idx_payments_order")
-}
-
-model photos {
-  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  album_page_id String      @db.Uuid
-  image_url     String
-  x             Decimal     @db.Decimal(10, 2)
-  y             Decimal     @db.Decimal(10, 2)
-  width         Decimal     @db.Decimal(10, 2)
-  height        Decimal     @db.Decimal(10, 2)
-  rotation      Decimal?    @default(0) @db.Decimal(10, 2)
-  scale         Decimal?    @default(1) @db.Decimal(10, 2)
-  opacity       Decimal?    @default(1) @db.Decimal(5, 2)
-  z_index       Int?        @default(0)
-  created_at    DateTime    @default(now()) @db.Timestamp(6)
-  updated_at    DateTime    @default(now()) @db.Timestamp(6)
-  album_pages   album_pages @relation(fields: [album_page_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_photos_album_page")
-
-  @@index([album_page_id], map: "idx_photos_album_page")
-}
+// =======================
+// PRODUCTS
+// =======================
 
 model products {
-  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  category_id String      @db.Uuid
-  title       String
+  id String @id @default(uuid())
+
+  category_id String
+
+  title String
+
   description String?
-  price       Decimal     @db.Decimal(10, 2)
-  cover_type  String
-  min_pages   Int
-  max_pages   Int
-  image       String?
-  created_at  DateTime    @default(now()) @db.Timestamp(6)
-  updated_at  DateTime    @default(now()) @db.Timestamp(6)
-  albums      albums[]
-  covers      covers[]
-  categories  categories  @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_products_category")
-  templates   templates[]
 
-  @@index([category_id], map: "idx_products_category")
+  price Decimal
+
+  cover_type String?
+
+  min_pages Int
+
+  max_pages Int
+
+  image String?
+
+  is_deleted Boolean @default(false)
+
+  categories categories @relation(fields: [category_id], references: [id])
+
+  albums albums[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
 }
 
-model settings {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  company_name    String
-  phone           String?
-  email           String?  @unique
-  address         String?
-  instagram       String?
-  facebook        String?
-  logo            String?
-  favicon         String?
-  primary_color   String?
-  secondary_color String?
-  created_at      DateTime @default(now()) @db.Timestamp(6)
-  updated_at      DateTime @default(now()) @db.Timestamp(6)
+// =======================
+// COVERS
+// =======================
+
+model covers {
+  id String @id @default(uuid())
+
+  name String
+
+  image String?
+
+  type String?
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
 }
+
+// =======================
+// TEMPLATES
+// =======================
 
 model templates {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  product_id String   @db.Uuid
-  title      String
-  thumbnail  String?
-  json_data  Json?
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
-  albums     albums[]
-  products   products @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_templates_product")
+  id String @id @default(uuid())
 
-  @@index([product_id], map: "idx_templates_product")
+  name String @unique
+
+  description String?
+
+  preview_image String?
+
+  pages Json?
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+
+  albums albums[]
 }
+
+// =======================
+// ALBUMS
+// =======================
+
+model albums {
+  id String @id @default(uuid())
+
+  user_id String?
+
+  product_id String?
+
+  template_id String?
+
+  title String
+
+  total_pages Int
+
+  status String @default("DRAFT")
+
+  users users? @relation(fields: [user_id], references: [id])
+
+  products products? @relation(fields: [product_id], references: [id])
+
+  templates templates? @relation(fields: [template_id], references: [id])
+
+  pages album_pages[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+}
+
+// =======================
+// ALBUM PAGES
+// =======================
+
+model album_pages {
+  id String @id @default(uuid())
+
+  album_id String
+
+  page_number Int
+
+  background String?
+
+  album albums @relation(fields: [album_id], references: [id])
+
+  photos photos[]
+
+  texts text_layers[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+}
+
+// =======================
+// PHOTOS
+// =======================
+
+model photos {
+  id String @id @default(uuid())
+
+  page_id String
+
+  url String
+
+  position Json?
+
+  page album_pages @relation(fields: [page_id], references: [id])
+
+  created_at DateTime @default(now())
+}
+
+// =======================
+// TEXT LAYERS
+// =======================
 
 model text_layers {
-  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  album_page_id  String      @db.Uuid
-  content        String
-  font           String
-  color          String
-  size           Int
-  x              Decimal     @db.Decimal(10, 2)
-  y              Decimal     @db.Decimal(10, 2)
-  rotation       Decimal?    @default(0) @db.Decimal(10, 2)
-  font_weight    String?     @default("normal")
-  alignment      String?     @default("left")
-  line_height    Decimal?    @default(1.20) @db.Decimal(5, 2)
-  letter_spacing Decimal?    @default(0) @db.Decimal(5, 2)
-  created_at     DateTime    @default(now()) @db.Timestamp(6)
-  updated_at     DateTime    @default(now()) @db.Timestamp(6)
-  album_pages    album_pages @relation(fields: [album_page_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_text_layers_album_page")
+  id String @id @default(uuid())
 
-  @@index([album_page_id], map: "idx_text_layers_album_page")
+  page_id String
+
+  text String
+
+  style Json?
+
+  page album_pages @relation(fields: [page_id], references: [id])
+
+  created_at DateTime @default(now())
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model users {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  full_name   String
-  email       String   @unique
-  phone       String
-  password    String
-  role        String   @default("USER")
-  is_verified Boolean  @default(false)
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now()) @db.Timestamp(6)
-  updated_at  DateTime @default(now()) @db.Timestamp(6)
-  albums      albums[]
-  orders      orders[]
+// =======================
+// ORDERS
+// =======================
 
-  @@index([email], map: "idx_users_email")
+model orders {
+  id String @id @default(uuid())
+
+  user_id String?
+
+  album_id String?
+
+  status String @default("PENDING")
+
+  total_price Decimal
+
+  users users? @relation(fields: [user_id], references: [id])
+
+  payments payments[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+}
+
+// =======================
+// PAYMENTS
+// =======================
+
+model payments {
+  id String @id @default(uuid())
+
+  order_id String
+
+  amount Decimal
+
+  status String
+
+  orders orders @relation(fields: [order_id], references: [id])
+
+  created_at DateTime @default(now())
+}
+
+// =======================
+// SETTINGS
+// =======================
+
+model settings {
+  id String @id @default(uuid())
+
+  key String @unique
+
+  value String?
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
 }

@@ -1,161 +1,189 @@
 const prisma = require("../config/prisma");
 
-// ======================
+
 // ADD PHOTO
-// ======================
 
-exports.addPhoto = async (req, res) => {
+exports.addPhoto = async(req,res)=>{
 
-    try {
 
-        const {
-            image_url,
-            x,
-            y,
-            width,
-            height,
-            rotation,
-            scale,
-            opacity,
-            z_index
-        } = req.body;
+try{
 
-        const photo = await prisma.photos.create({
 
-            data: {
+const {id}=req.params;
 
-                album_page_id: req.params.id,
 
-                image_url,
+const {
 
-                x,
+image_url,
+x,
+y,
+width,
+height,
+rotation,
+scale,
+opacity
 
-                y,
+}=req.body;
 
-                width,
 
-                height,
 
-                rotation: rotation ?? 0,
+const photo = await prisma.photos.create({
 
-                scale: scale ?? 1,
+data:{
 
-                opacity: opacity ?? 1,
 
-                z_index: z_index ?? 0
+album_page_id:id,
 
-            }
+image_url:image_url || "",
 
-        });
+x:x || 0,
 
-        res.status(201).json({
+y:y || 0,
 
-            success: true,
+width:width || 100,
 
-            data: photo
+height:height || 100,
 
-        });
+rotation:rotation || 0,
 
-    } catch (err) {
+scale:scale || 1,
 
-        console.log(err);
+opacity:opacity || 1,
 
-        res.status(500).json({
+z_index:0
 
-            success: false,
 
-            message: err.message
+}
 
-        });
 
-    }
+});
+
+
+
+res.json({
+
+success:true,
+
+message:"Photo əlavə edildi",
+
+data:photo
+
+});
+
+
+
+}catch(error){
+
+console.log(error);
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+}
+
 
 };
 
 
-// ======================
+
+
+
 // UPDATE PHOTO
-// ======================
 
-exports.updatePhoto = async (req, res) => {
+exports.updatePhoto = async(req,res)=>{
 
-    try {
 
-        const photo = await prisma.photos.update({
+try{
 
-            where: {
 
-                id: req.params.id
+const {id}=req.params;
 
-            },
 
-            data: req.body
+const photo = await prisma.photos.update({
 
-        });
+where:{
+id
+},
 
-        res.json({
+data:req.body
 
-            success: true,
+});
 
-            data: photo
 
-        });
 
-    } catch (err) {
+res.json({
 
-        console.log(err);
+success:true,
 
-        res.status(500).json({
+data:photo
 
-            success: false,
+});
 
-            message: err.message
 
-        });
 
-    }
+}catch(error){
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+}
+
 
 };
 
 
-// ======================
+
+
 // DELETE PHOTO
-// ======================
 
-exports.deletePhoto = async (req, res) => {
+exports.deletePhoto = async(req,res)=>{
 
-    try {
 
-        await prisma.photos.delete({
+try{
 
-            where: {
 
-                id: req.params.id
+await prisma.photos.delete({
 
-            }
+where:{
+id:req.params.id
+}
 
-        });
+});
 
-        res.json({
 
-            success: true,
+res.json({
 
-            message: "Photo silindi."
+success:true,
 
-        });
+message:"Photo silindi"
 
-    } catch (err) {
+});
 
-        console.log(err);
 
-        res.status(500).json({
 
-            success: false,
+}catch(error){
 
-            message: err.message
 
-        });
+res.status(500).json({
 
-    }
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
 
 };

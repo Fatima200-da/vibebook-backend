@@ -1,156 +1,161 @@
 const prisma = require("../config/prisma");
 
-// ======================
-// GET ALBUM
-// ======================
+// =======================
+// GET ALBUM EDITOR
+// =======================
 
 exports.getAlbum = async (req, res) => {
     try {
+        const { id } = req.params;
 
         const album = await prisma.albums.findUnique({
-
             where: {
-                id: req.params.id
+                id,
             },
-
             include: {
-
-                album_pages: {
-
-                    orderBy: {
-                        page_number: "asc"
-                    },
-
-                    include: {
-
-                        photos: true,
-                        text_layers: true
-
-                    }
-
-                },
-
-                covers: true,
+                products: true,
                 templates: true,
-                products: true
-
-            }
-
+                pages: {
+                    orderBy: {
+                        page_number: "asc",
+                    },
+                    include: {
+                        photos: true,
+                        texts: true,
+                    },
+                },
+            },
         });
 
         if (!album) {
-
             return res.status(404).json({
-
                 success: false,
-                message: "Album tapılmadı."
-
+                message: "Album tapılmadı",
             });
-
         }
 
-        res.json({
-
+        return res.json({
             success: true,
-            data: album
-
+            data: album,
         });
+    } catch (error) {
+        console.log(error);
 
-    } catch (err) {
-
-        console.log(err);
-
-        res.status(500).json({
-
+        return res.status(500).json({
             success: false,
-            message: err.message
-
+            message: error.message,
         });
-
     }
 };
 
-// ======================
+// =======================
 // CREATE PAGE
-// ======================
+// =======================
 
 exports.createPage = async (req, res) => {
-
     try {
+        const { id } = req.params;
 
-        const {
-            page_number,
-            background
-        } = req.body;
+        const album = await prisma.albums.findUnique({
+            where: {
+                id,
+            },
+        });
+
+        if (!album) {
+            return res.status(404).json({
+                success: false,
+                message: "Album tapılmadı",
+            });
+        }
+
+        const lastPage = await prisma.album_pages.findFirst({
+            where: {
+                album_id: id,
+            },
+            orderBy: {
+                page_number: "desc",
+            },
+        });
+
+        const pageNumber = lastPage ? lastPage.page_number + 1 : 1;
 
         const page = await prisma.album_pages.create({
-
             data: {
-
-                album_id: req.params.id,
-                page_number,
-                background
-
-            }
-
+                album_id: id,
+                page_number: pageNumber,
+                background: "#ffffff",
+            },
         });
 
-        res.status(201).json({
-
+        return res.json({
             success: true,
-            data: page
-
+            message: "Page yaradıldı",
+            data: page,
         });
+    } catch (error) {
+        console.log(error);
 
-    } catch (err) {
-
-        console.log(err);
-
-        res.status(500).json({
-
+        return res.status(500).json({
             success: false,
-            message: err.message
-
+            message: error.message,
         });
-
     }
-
 };
 
-// ======================
+// =======================
 // DELETE PAGE
-// ======================
+// =======================
 
 exports.deletePage = async (req, res) => {
-
     try {
+        const { id } = req.params;
 
-        await prisma.album_pages.delete({
-
+        // əvvəl page mövcuddurmu?
+        const page = await prisma.album_pages.findUnique({
             where: {
-                id: req.params.id
-            }
-
+                id,
+            },
         });
 
-        res.json({
+        if (!page) {
+            return res.status(404).json({
+                success: false,
+                message: "Page tapılmadı",
+            });
+        }
 
+        // həmin page-dəki şəkilləri sil
+        await prisma.photos.deleteMany({
+            where: {
+                page_id: id,
+            },
+        });
+
+        // həmin page-dəki mətnləri sil
+        await prisma.text_layers.deleteMany({
+            where: {
+                page_id: id,
+            },
+        });
+
+        // page-i sil
+        await prisma.album_pages.delete({
+            where: {
+                id,
+            },
+        });
+
+        return res.json({
             success: true,
-            message: "Page silindi."
-
+            message: "Page silindi",
         });
+    } catch (error) {
+        console.log(error);
 
-    } catch (err) {
-
-        console.log(err);
-
-        res.status(500).json({
-
+        return res.status(500).json({
             success: false,
-            message: err.message
-
+            message: error.message,
         });
-
     }
-
 };

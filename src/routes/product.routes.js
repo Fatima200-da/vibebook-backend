@@ -6,8 +6,9 @@ const admin = require("../middleware/admin.middleware");
 const auth = require("../middleware/auth.middleware");
 const validate = require("../middleware/validation.middleware");
 
-const productController = require("../controllers/product.controller");
+const productValidation = require("../validation/product.validation");
 
+const productController = require("../controllers/product.controller");
 
 /**
  * @swagger
@@ -15,7 +16,6 @@ const productController = require("../controllers/product.controller");
  *   name: Products
  *   description: Product Management APIs
  */
-
 
 /**
  * @swagger
@@ -37,7 +37,6 @@ router.get(
     admin,
     productController.getProducts
 );
-
 
 /**
  * @swagger
@@ -79,9 +78,9 @@ router.get(
 router.get(
     "/search",
     auth,
+    validate(productValidation.search),
     productController.searchProducts
 );
-
 
 /**
  * @swagger
@@ -99,7 +98,6 @@ router.get(
     productController.getProduct
 );
 
-
 /**
  * @swagger
  * /api/products:
@@ -113,14 +111,9 @@ router.post(
     "/",
     auth,
     admin,
-    validate([
-        "category_id",
-        "title",
-        "price"
-    ]),
+    validate(productValidation.create),
     productController.createProduct
 );
-
 
 /**
  * @swagger
@@ -135,9 +128,9 @@ router.put(
     "/:id",
     auth,
     admin,
+    validate(productValidation.update),
     productController.updateProduct
 );
-
 
 /**
  * @swagger
@@ -154,6 +147,5 @@ router.delete(
     admin,
     productController.deleteProduct
 );
-
 
 module.exports = router;

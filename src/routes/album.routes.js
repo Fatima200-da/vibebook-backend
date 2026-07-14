@@ -18,139 +18,132 @@ const albumController = require("../controllers/album.controller");
 
 
 
-/**
- * @swagger
- * /api/albums:
- *   post:
- *     summary: Create album
- *     tags: [Albums]
- */
+// =======================
+// CREATE ALBUM
+// =======================
+
 router.post(
     "/",
     auth,
-    validate([
-        "product_id",
-        "title",
-        "total_pages"
-    ]),
+    validate(
+        [
+            "product_id",
+            "title",
+            "total_pages"
+        ],
+        {
+            minLength:{
+                title:3
+            }
+        }
+    ),
     albumController.createAlbum
 );
 
 
 
-/**
- * @swagger
- * /api/albums/{id}/preview:
- *   get:
- *     summary: Preview album before export
- *     tags: [Albums]
- *     security:
- *       - bearerAuth: []
- *
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *
- *     responses:
- *       200:
- *         description: Album preview
- */
+
+// =======================
+// PREVIEW ALBUM
+// =======================
+
 router.get(
     "/:id/preview",
     auth,
+    validate(),
     albumController.previewAlbum
 );
 
 
 
-/**
- * @swagger
- * /api/albums/{id}/duplicate:
- *   post:
- *     summary: Duplicate album
- *     tags: [Albums]
- */
+
+// =======================
+// DUPLICATE ALBUM
+// =======================
+
 router.post(
     "/:id/duplicate",
     auth,
+    validate(),
     albumController.duplicateAlbum
 );
 
 
 
-/**
- * @swagger
- * /api/albums/{id}/undo:
- *   post:
- *     summary: Undo last action
- *     tags: [Albums]
- */
+
+// =======================
+// UNDO
+// =======================
+
 router.post(
     "/:id/undo",
     auth,
+    validate(),
     albumController.undoAlbum
 );
 
 
 
-/**
- * @swagger
- * /api/albums/{id}/redo:
- *   post:
- *     summary: Redo last action
- *     tags: [Albums]
- */
+
+// =======================
+// REDO
+// =======================
+
 router.post(
     "/:id/redo",
     auth,
+    validate(),
     albumController.redoAlbum
 );
 
 
 
-/**
- * @swagger
- * /api/albums/{id}:
- *   get:
- *     summary: Get album by ID
- *     tags: [Albums]
- */
+
+// =======================
+// GET ALBUM
+// =======================
+
 router.get(
     "/:id",
     auth,
+    validate(),
     albumController.getAlbum
 );
 
 
 
-/**
- * @swagger
- * /api/albums/{id}:
- *   put:
- *     summary: Update album
- *     tags: [Albums]
- */
+
+// =======================
+// UPDATE ALBUM
+// =======================
+
 router.put(
     "/:id",
     auth,
+    validate(
+        [
+            "title"
+        ],
+        {
+            minLength:{
+                title:3
+            }
+        }
+    ),
     albumController.updateAlbum
 );
 
 
 
-/**
- * @swagger
- * /api/albums/{id}:
- *   delete:
- *     summary: Delete album
- *     tags: [Albums]
- */
+
+// =======================
+// DELETE ALBUM
+// =======================
+
 router.delete(
     "/:id",
     auth,
+    validate(),
     albumController.deleteAlbum
 );
 

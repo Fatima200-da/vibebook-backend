@@ -220,137 +220,158 @@ async function main() {
     });
 
     console.log("✅ Products created");
-        // =========================
-    // COVERS
-    // =========================
+       // =========================
+       // COVERS
+       // =========================
+        const cover1 = await prisma.covers.create({
+            data:{
+                name:"Luxury White Cover",
+                image:"uploads/covers/cover1.jpg",
+                type:"Hard Cover"
+             }
+            });
+            const cover2 = await prisma.covers.create({
+                data:{
+                     name:"Classic Black Cover",
+                      image:"uploads/covers/cover2.jpg",
+                      type:"Soft Cover"
+                     }
+                    });
+                    const cover3 = await prisma.covers.create({
+                        data:{
+                             name:"Travel Adventure Cover",
+                             image:"uploads/covers/cover3.jpg",
+                             type:"Premium Cover"
+                             }
+                            });
+                            console.log("✅ Covers created");
+// =========================
+// TEMPLATES
+// =========================
 
-    const cover1 = await prisma.covers.create({
-        data: {
-            product_id: weddingProduct.id,
-            title: "Luxury White Cover",
-            image: "uploads/covers/cover1.jpg"
+
+const template1 = await prisma.templates.upsert({
+
+    where:{
+        name:"Wedding Classic"
+    },
+
+    update:{},
+
+    create:{
+
+        name:"Wedding Classic",
+
+        description:
+        "Classic wedding album template",
+
+        preview_image:
+        "uploads/templates/template1.jpg",
+
+        pages:[
+            {
+                page:1,
+                layout:"cover"
+            },
+            {
+                page:2,
+                layout:"photo-text"
+            },
+            {
+                page:3,
+                layout:"gallery"
+            }
+        ]
+
+    }
+
+});
+
+
+
+const template2 = await prisma.templates.upsert({
+
+    where:{
+        name:"Travel Adventure"
+    },
+
+    update:{},
+
+    create:{
+
+        name:"Travel Adventure",
+
+        description:
+        "Travel memories album template",
+
+        preview_image:
+        "uploads/templates/template2.jpg",
+
+        pages:[
+            {
+                page:1,
+                layout:"cover"
+            },
+            {
+                page:2,
+                layout:"full-photo"
+            },
+            {
+                page:3,
+                layout:"grid"
+            }
+        ]
+
+    }
+
+});
+
+
+console.log("✅ Templates created");
+// =========================
+// TEST ALBUM
+// =========================
+
+const album = await prisma.albums.create({
+
+    data:{
+        title:"Demo Wedding Album",
+
+        total_pages:20,
+
+        status:"DRAFT",
+
+        users:{
+            connect:{
+                id:user.id
+            }
+        },
+
+        products:{
+            connect:{
+                id:weddingProduct.id
+            }
+        },
+
+        templates:{
+            connect:{
+                id:template1.id
+            }
         }
-    });
 
-    const cover2 = await prisma.covers.create({
-        data: {
-            product_id: babyProduct.id,
-            title: "Baby Blue Cover",
-            image: "uploads/covers/cover2.jpg"
-        }
-    });
+    }
 
-    const cover3 = await prisma.covers.create({
-        data: {
-            product_id: travelProduct.id,
-            title: "Travel Adventure Cover",
-            image: "uploads/covers/cover3.jpg"
-        }
-    });
+});
 
-    const cover4 = await prisma.covers.create({
-        data: {
-            product_id: classicProduct.id,
-            title: "Classic Black Cover",
-            image: "uploads/covers/cover4.jpg"
-        }
-    });
 
-    const cover5 = await prisma.covers.create({
-        data: {
-            product_id: weddingProduct.id,
-            title: "Golden Wedding Cover",
-            image: "uploads/covers/cover5.jpg"
-        }
-    });
-
-    console.log("✅ Covers created");
-
-    // =========================
-    // TEMPLATES
-    // =========================
-
-    const template1 = await prisma.templates.create({
-        data: {
-            product_id: weddingProduct.id,
-            title: "Wedding Classic",
-            thumbnail: "uploads/templates/template1.jpg",
-            json_data: {}
-        }
-    });
-
-    const template2 = await prisma.templates.create({
-        data: {
-            product_id: babyProduct.id,
-            title: "Baby Cute",
-            thumbnail: "uploads/templates/template2.jpg",
-            json_data: {}
-        }
-    });
-
-    const template3 = await prisma.templates.create({
-        data: {
-            product_id: travelProduct.id,
-            title: "Travel Story",
-            thumbnail: "uploads/templates/template3.jpg",
-            json_data: {}
-        }
-    });
-
-    const template4 = await prisma.templates.create({
-        data: {
-            product_id: classicProduct.id,
-            title: "Classic Memories",
-            thumbnail: "uploads/templates/template4.jpg",
-            json_data: {}
-        }
-    });
-
-    const template5 = await prisma.templates.create({
-        data: {
-            product_id: weddingProduct.id,
-            title: "Luxury Wedding",
-            thumbnail: "uploads/templates/template5.jpg",
-            json_data: {}
-        }
-    });
-
-    console.log("✅ Templates created");
-
-    // =========================
-    // TEST ALBUM
-    // =========================
-
-    const album = await prisma.albums.create({
-        data: {
-            user_id: user.id,
-            product_id: weddingProduct.id,
-            cover_id: cover1.id,
-            template_id: template1.id,
-            title: "Demo Wedding Album",
-            total_pages: 20,
-            status: "Draft"
-        }
-    });
-
-    console.log("✅ Test Album created");
-
+console.log("✅ Album created");
 }
 
 main()
-    .then(async () => {
-
-        console.log("🌱 Database seeded successfully.");
-
-        await prisma.$disconnect();
-
-    })
-    .catch(async (e) => {
-
-        console.error(e);
-
-        await prisma.$disconnect();
-
-        process.exit(1);
-
-    });
+.catch((e)=>{
+    console.error(e);
+    process.exit(1);
+})
+.finally(async()=>{
+    await prisma.$disconnect();
+});

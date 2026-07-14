@@ -15,6 +15,7 @@ const options = {
                 url: "http://localhost:5000"
             }
         ],
+
         components: {
             securitySchemes: {
                 bearerAuth: {
@@ -23,7 +24,13 @@ const options = {
                     bearerFormat: "JWT"
                 }
             }
-        }
+        },
+
+        security: [
+            {
+                bearerAuth: []
+            }
+        ]
     },
 
     apis: [

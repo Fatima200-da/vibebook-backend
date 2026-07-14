@@ -2,10 +2,14 @@ const express = require("express");
 
 const router = express.Router();
 
+
 const coverController = require("../controllers/cover.controller");
 
 const auth = require("../middleware/auth.middleware");
 const admin = require("../middleware/admin.middleware");
+
+const validate = require("../middleware/validation.middleware");
+
 
 
 // =======================
@@ -20,6 +24,8 @@ router.get(
 );
 
 
+
+
 // =======================
 // GET COVER BY ID
 // =======================
@@ -28,8 +34,11 @@ router.get(
     "/:id",
     auth,
     admin,
+    validate(),
     coverController.getCoverById
 );
+
+
 
 
 // =======================
@@ -40,8 +49,21 @@ router.post(
     "/",
     auth,
     admin,
+    validate(
+        [
+            "name",
+            "price"
+        ],
+        {
+            minLength:{
+                name:3
+            }
+        }
+    ),
     coverController.createCover
 );
+
+
 
 
 // =======================
@@ -52,8 +74,21 @@ router.put(
     "/:id",
     auth,
     admin,
+    validate(
+        [
+            "name",
+            "price"
+        ],
+        {
+            minLength:{
+                name:3
+            }
+        }
+    ),
     coverController.updateCover
 );
+
+
 
 
 // =======================
@@ -64,8 +99,10 @@ router.delete(
     "/:id",
     auth,
     admin,
+    validate(),
     coverController.deleteCover
 );
+
 
 
 module.exports = router;

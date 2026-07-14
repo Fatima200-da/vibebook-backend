@@ -4,13 +4,11 @@ const router = express.Router();
 
 const auth = require("../middleware/auth.middleware");
 const admin = require("../middleware/admin.middleware");
+const validate = require("../middleware/validation.middleware");
+
+const userValidation = require("../validation/user.validation");
 
 const userController = require("../controllers/user.controller");
-
-
-// =======================
-// SWAGGER TAG
-// =======================
 
 /**
  * @swagger
@@ -18,11 +16,6 @@ const userController = require("../controllers/user.controller");
  *   name: Users
  *   description: User Management APIs
  */
-
-
-// =======================
-// GET ALL USERS
-// =======================
 
 /**
  * @swagger
@@ -54,13 +47,9 @@ router.get(
     "/",
     auth,
     admin,
+    validate(userValidation.list),
     userController.getUsers
 );
-
-
-// =======================
-// SEARCH USERS
-// =======================
 
 /**
  * @swagger
@@ -101,8 +90,8 @@ router.get(
     "/search",
     auth,
     admin,
+    validate(userValidation.search),
     userController.searchUsers
 );
-
 
 module.exports = router;

@@ -637,18 +637,16 @@ exports.undoAlbum = async(req,res)=>{
 // REDO
 // =======================
 
-exports.redoAlbum = async(req,res)=>{
+exports.redoAlbum = async (req, res) => {
 
+    console.log("===== REDO =====");
+    console.log("req.user =", req.user);
+    console.log("req.params =", req.params);
 
-    res.json({
-
-        success:true,
-
-        message:"Redo uğurla icra olundu",
-
-        albumId:req.params.id
-
+    return res.json({
+        success: true,
+        message: "Redo test",
+        user: req.user
     });
-
 
 };

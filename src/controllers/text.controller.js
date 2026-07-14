@@ -1,159 +1,178 @@
 const prisma = require("../config/prisma");
 
-// ======================
+
 // ADD TEXT
-// ======================
 
-exports.addText = async (req, res) => {
+exports.addText = async(req,res)=>{
 
-    try {
 
-        const {
-            content,
-            font,
-            color,
-            size,
-            x,
-            y,
-            rotation,
-            font_weight,
-            alignment,
-            line_height,
-            letter_spacing
-        } = req.body;
+try{
 
-        const text = await prisma.text_layers.create({
 
-            data: {
+const {id}=req.params;
 
-                album_page_id: req.params.id,
 
-                content,
+const {
 
-                font,
+content,
+font,
+color,
+size,
+x,
+y,
+rotation
 
-                color,
 
-                size,
+}=req.body;
 
-                x,
 
-                y,
 
-                rotation: rotation ?? 0,
+const text = await prisma.text_layers.create({
 
-                font_weight: font_weight ?? "normal",
+data:{
 
-                alignment: alignment ?? "left",
 
-                line_height: line_height ?? 1.2,
+album_page_id:id,
 
-                letter_spacing: letter_spacing ?? 0
+content:content || "",
 
-            }
+font:font || "Arial",
 
-        });
+color:color || "#000000",
 
-        res.status(201).json({
+size:size || 20,
 
-            success: true,
-            data: text
+x:x || 0,
 
-        });
+y:y || 0,
 
-    } catch (err) {
+rotation:rotation || 0
 
-        console.log(err);
 
-        res.status(500).json({
+}
 
-            success: false,
-            message: err.message
 
-        });
+});
 
-    }
+
+
+res.json({
+
+success:true,
+
+message:"Text əlavə edildi",
+
+data:text
+
+});
+
+
+
+}catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
 
 };
 
-// ======================
+
+
+
+
 // UPDATE TEXT
-// ======================
 
-exports.updateText = async (req, res) => {
+exports.updateText = async(req,res)=>{
 
-    try {
 
-        const text = await prisma.text_layers.update({
+try{
 
-            where: {
 
-                id: req.params.id
+const text = await prisma.text_layers.update({
 
-            },
+where:{
+id:req.params.id
+},
 
-            data: req.body
+data:req.body
 
-        });
+});
 
-        res.json({
 
-            success: true,
-            data: text
+res.json({
 
-        });
+success:true,
 
-    } catch (err) {
+data:text
 
-        console.log(err);
+});
 
-        res.status(500).json({
 
-            success: false,
-            message: err.message
+}catch(error){
 
-        });
+res.status(500).json({
 
-    }
+success:false,
+
+message:error.message
+
+});
+
+}
+
 
 };
 
-// ======================
+
+
+
+
 // DELETE TEXT
-// ======================
 
-exports.deleteText = async (req, res) => {
+exports.deleteText = async(req,res)=>{
 
-    try {
 
-        await prisma.text_layers.delete({
+try{
 
-            where: {
 
-                id: req.params.id
+await prisma.text_layers.delete({
 
-            }
+where:{
+id:req.params.id
+}
 
-        });
+});
 
-        res.json({
 
-            success: true,
-            message: "Text silindi."
+res.json({
 
-        });
+success:true,
 
-    } catch (err) {
+message:"Text silindi"
 
-        console.log(err);
+});
 
-        res.status(500).json({
 
-            success: false,
-            message: err.message
+}catch(error){
 
-        });
 
-    }
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
 
 };

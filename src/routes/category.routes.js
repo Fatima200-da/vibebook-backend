@@ -4,8 +4,11 @@ const router = express.Router();
 
 const validate = require("../middleware/validation.middleware");
 const categoryController = require("../controllers/category.controller");
+
 const auth = require("../middleware/auth.middleware");
 const admin = require("../middleware/admin.middleware");
+
+
 
 /**
  * @swagger
@@ -15,16 +18,9 @@ const admin = require("../middleware/admin.middleware");
  */
 
 
-/**
- * @swagger
- * /api/categories:
- *   get:
- *     summary: Get all categories
- *     tags: [Categories]
- *     responses:
- *       200:
- *         description: Category list
- */
+
+// GET ALL CATEGORIES
+
 router.get(
     "/",
     auth,
@@ -33,91 +29,79 @@ router.get(
 );
 
 
-/**
- * @swagger
- * /api/categories/{id}:
- *   get:
- *     summary: Get category by ID
- *     tags: [Categories]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Category found
- */
+
+
+
+// GET CATEGORY BY ID
+
 router.get(
     "/:id",
     auth,
     admin,
+    validate(),
     categoryController.getCategory
 );
 
 
-/**
- * @swagger
- * /api/categories:
- *   post:
- *     summary: Create category
- *     tags: [Categories]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 example: Classic
- *     responses:
- *       201:
- *         description: Category created
- */
+
+
+
+// CREATE CATEGORY
+
 router.post(
     "/",
     auth,
     admin,
-    validate([
-        "name"
-    ]),
+    validate(
+        [
+            "name"
+        ],
+        {
+            minLength:{
+                name:3
+            }
+        }
+    ),
     categoryController.createCategory
 );
 
 
-/**
- * @swagger
- * /api/categories/{id}:
- *   put:
- *     summary: Update category
- *     tags: [Categories]
- */
+
+
+
+// UPDATE CATEGORY
+
 router.put(
     "/:id",
     auth,
     admin,
+    validate(
+        [
+            "name"
+        ],
+        {
+            minLength:{
+                name:3
+            }
+        }
+    ),
     categoryController.updateCategory
 );
 
 
-/**
- * @swagger
- * /api/categories/{id}:
- *   delete:
- *     summary: Delete category
- *     tags: [Categories]
- */
+
+
+
+// DELETE CATEGORY
+
 router.delete(
     "/:id",
     auth,
     admin,
+    validate(),
     categoryController.deleteCategory
 );
+
 
 
 module.exports = router;

@@ -5,7 +5,6 @@ const prisma = require("../config/prisma");
 // =======================
 
 exports.undo = async (req, res) => {
-
     try {
 
         const { albumId } = req.params;
@@ -17,15 +16,24 @@ exports.undo = async (req, res) => {
             },
 
             include: {
-                album_pages: {
-                    include: {
-                        photos: true,
-                        text_layers: true
-                    },
+
+                products: true,
+
+                templates: true,
+
+                pages: {
+
                     orderBy: {
                         page_number: "asc"
+                    },
+
+                    include: {
+                        photos: true,
+                        texts: true
                     }
+
                 }
+
             }
 
         });
@@ -41,10 +49,10 @@ exports.undo = async (req, res) => {
 
         }
 
-        res.json({
+        return res.json({
 
             success: true,
-            message: "Undo uğurla icra olundu.",
+            message: "Undo successful.",
             data: album
 
         });
@@ -53,7 +61,7 @@ exports.undo = async (req, res) => {
 
         console.error(err);
 
-        res.status(500).json({
+        return res.status(500).json({
 
             success: false,
             message: err.message
@@ -61,7 +69,6 @@ exports.undo = async (req, res) => {
         });
 
     }
-
 };
 
 
@@ -70,7 +77,8 @@ exports.undo = async (req, res) => {
 // =======================
 
 exports.redo = async (req, res) => {
-
+    console.log("REDO");
+    console.log(req.user);
     try {
 
         const { albumId } = req.params;
@@ -82,15 +90,24 @@ exports.redo = async (req, res) => {
             },
 
             include: {
-                album_pages: {
-                    include: {
-                        photos: true,
-                        text_layers: true
-                    },
+
+                products: true,
+
+                templates: true,
+
+                pages: {
+
                     orderBy: {
                         page_number: "asc"
+                    },
+
+                    include: {
+                        photos: true,
+                        texts: true
                     }
+
                 }
+
             }
 
         });
@@ -106,10 +123,10 @@ exports.redo = async (req, res) => {
 
         }
 
-        res.json({
+        return res.json({
 
             success: true,
-            message: "Redo uğurla icra olundu.",
+            message: "Redo successful.",
             data: album
 
         });
@@ -118,7 +135,7 @@ exports.redo = async (req, res) => {
 
         console.error(err);
 
-        res.status(500).json({
+        return res.status(500).json({
 
             success: false,
             message: err.message

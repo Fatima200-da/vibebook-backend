@@ -1,328 +1,716 @@
 const prisma = require("../config/prisma");
 
+
 // =======================
 // GET ALL PRODUCTS
+// Pagination + Search + Sort
 // =======================
 
 exports.getProducts = async (req, res) => {
-    try {
-
-        const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 20;
-        const skip = (page - 1) * limit;
-
-        const { category, priceFrom, priceTo, sort } = req.query;
-
-        const where = {};
-
-        if (category) {
-            where.category_id = category;
-        }
-
-        if (priceFrom || priceTo) {
-            where.price = {};
-
-            if (priceFrom) where.price.gte = Number(priceFrom);
-            if (priceTo) where.price.lte = Number(priceTo);
-        }
-
-        let orderBy = { created_at: "desc" };
-
-        if (sort === "oldest") orderBy = { created_at: "asc" };
-        if (sort === "priceAsc") orderBy = { price: "asc" };
-        if (sort === "priceDesc") orderBy = { price: "desc" };
-
-        const total = await prisma.products.count({ where });
-
-        const products = await prisma.products.findMany({
-            where,
-            include: {
-                categories: true
-            },
-            skip,
-            take: limit,
-            orderBy
-        });
-
-        res.json({
-            success: true,
-            total,
-            page,
-            limit,
-            data: products
-        });
-
-    } catch (err) {
-
-        console.error(err);
-
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-
-    }
-};
-// =======================
-// GET PRODUCT BY ID
-// =======================
-
-exports.getProduct = async (req, res) => {
-    try {
-
-        const product = await prisma.products.findUnique({
-            where: {
-                id: req.params.id
-            },
-            include: {
-                categories: true
-            }
-        });
-
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: "Məhsul tapılmadı."
-            });
-        }
-
-        res.json({
-            success: true,
-            data: product
-        });
-
-    } catch (err) {
-
-        console.error(err);
-
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-
-    }
-};
-// Məhsul yarat
-exports.createProduct = async (req, res) => {
-  try {
-    const {
-      category_id,
-      title,
-      description,
-      price,
-      cover_type,
-      min_pages,
-      max_pages,
-      image,
-    } = req.body;
-
-    const product = await prisma.products.create({
-      data: {
-        category_id,
-        title,
-        description,
-        price: Number(price),
-        cover_type,
-        min_pages: Number(min_pages),
-        max_pages: Number(max_pages),
-        image,
-      },
-    });
-
-    res.status(201).json({
-      success: true,
-      data: product,
-    });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: "Server xətası",
-    });
-  }
-};
-
-// Məhsulu yenilə
-// Məhsulu yenilə
-exports.updateProduct = async (req, res) => {
-  try {
-   const {
- category_id,
- title,
- description,
- price,
- cover_type,
- min_pages,
- max_pages,
-} = req.body;
-
-
-const image = req.file
-    ? `uploads/${req.file.filename}`
-    : null;
-
-    const product = await prisma.products.update({
-    where: {
-        id: req.params.id
-    },
-    data: {
-        category_id,
-        title,
-        description,
-        price: Number(price),
-        cover_type,
-        min_pages: Number(min_pages),
-        max_pages: Number(max_pages),
-        ...(image && { image })
-    }
-});
-
-    res.json({
-      success: true,
-      data: product,
-    });
-
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: "Server xətası",
-    });
-  }
-};
-
-// Məhsulu sil
-exports.deleteProduct = async (req, res) => {
-  try {
-    await prisma.products.delete({
-      where: {
-        id: req.params.id,
-      },
-    });
-
-    res.json({
-      success: true,
-      message: "Məhsul silindi.",
-    });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: "Server xətası",
-    });
-  }
-};
-// =======================
-// SEARCH + FILTER + SORT + PAGINATION
-// =======================
-
-exports.searchProducts = async (req, res) => {
 
     try {
 
-        const {
-            q,
+
+        let {
             page = 1,
             limit = 20,
-            category,
-            priceFrom,
-            priceTo,
+            search = "",
             sort = "newest"
         } = req.query;
 
-        const where = {};
 
-        if (q) {
 
-            where.title = {
-                contains: q,
-                mode: "insensitive"
-            };
+        page = Number(page);
+        limit = Number(limit);
 
-        }
 
-        if (category) {
 
-            where.categories = {
-                name: category
-            };
+        if (page < 1) page = 1;
 
-        }
+        if (limit < 1) limit = 20;
 
-        if (priceFrom || priceTo) {
+        if (limit > 100) limit = 100;
 
-            where.price = {};
 
-            if (priceFrom)
-                where.price.gte = Number(priceFrom);
 
-            if (priceTo)
-                where.price.lte = Number(priceTo);
+        const skip = (page - 1) * limit;
 
-        }
+
 
         let orderBy = {
             created_at: "desc"
         };
 
-        if (sort === "oldest")
-            orderBy = { created_at: "asc" };
 
-        if (sort === "priceAsc")
-            orderBy = { price: "asc" };
 
-        if (sort === "priceDesc")
-            orderBy = { price: "desc" };
+        if(sort === "price_asc"){
+
+            orderBy = {
+                price:"asc"
+            };
+
+        }
+
+
+
+        if(sort === "price_desc"){
+
+            orderBy = {
+                price:"desc"
+            };
+
+        }
+
+
+
+
+        const where = search ? {
+
+            OR:[
+
+                {
+                    title:{
+                        contains:search,
+                        mode:"insensitive"
+                    }
+                },
+
+
+                {
+                    description:{
+                        contains:search,
+                        mode:"insensitive"
+                    }
+                }
+
+            ]
+
+        } : {};
+
+
+
+
 
         const products = await prisma.products.findMany({
 
             where,
 
-            include: {
-                categories: true
-            },
+            skip,
+
+            take:limit,
 
             orderBy,
 
-            skip: (Number(page) - 1) * Number(limit),
 
-            take: Number(limit)
+            include:{
+
+                categories:true
+
+            }
 
         });
+
+
+
+
 
         const total = await prisma.products.count({
+
             where
+
         });
 
-        res.json({
 
-            success: true,
+
+
+
+        return res.json({
+
+            success:true,
 
             total,
 
-            page: Number(page),
+            page,
 
-            limit: Number(limit),
+            limit,
 
-            data: products
+            pages:Math.ceil(total / limit),
+
+            data:products
 
         });
 
-    } catch (err) {
 
-        console.log(err);
+
+    } catch(error){
+
+
+        return res.status(500).json({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
+};
+
+
+
+
+
+// =======================
+// GET PRODUCT BY ID
+// =======================
+
+exports.getProduct = async(req,res)=>{
+
+
+    try{
+
+
+        const product = await prisma.products.findUnique({
+
+            where:{
+                id:req.params.id
+            },
+
+
+            include:{
+                categories:true
+            }
+
+        });
+
+
+
+
+
+        if(!product){
+
+
+            return res.status(404).json({
+
+                success:false,
+
+                message:"Product not found"
+
+            });
+
+
+        }
+
+
+
+
+
+        res.json({
+
+            success:true,
+
+            data:product
+
+        });
+
+
+
+    }catch(error){
+
 
         res.status(500).json({
 
-            success: false,
+            success:false,
 
-            message: err.message
+            message:error.message
 
         });
 
+
     }
+
+
+};
+
+
+
+
+
+
+
+// =======================
+// CREATE PRODUCT
+// =======================
+
+exports.createProduct = async(req,res)=>{
+
+
+    try{
+
+
+        const {
+
+            category_id,
+            title,
+            description,
+            price,
+            cover_type,
+            min_pages,
+            max_pages,
+            image
+
+        } = req.body;
+
+
+
+
+
+        const product = await prisma.products.create({
+
+            data:{
+
+
+                category_id,
+
+                title,
+
+                description,
+
+
+                price:Number(price),
+
+
+                cover_type,
+
+
+                min_pages:Number(min_pages),
+
+
+                max_pages:Number(max_pages),
+
+
+                image:req.file
+                    ? `uploads/products/${req.file.filename}`
+                    : image
+
+
+            }
+
+
+        });
+
+
+
+
+
+        res.status(201).json({
+
+            success:true,
+
+            data:product
+
+        });
+
+
+
+    }catch(error){
+
+
+        res.status(500).json({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
+
+};
+
+
+
+
+
+
+
+// =======================
+// UPDATE PRODUCT
+// =======================
+
+exports.updateProduct = async(req,res)=>{
+
+
+    try{
+
+
+        const data = {};
+
+
+
+        if(req.body.category_id)
+            data.category_id=req.body.category_id;
+
+
+
+        if(req.body.title)
+            data.title=req.body.title;
+
+
+
+        if(req.body.description)
+            data.description=req.body.description;
+
+
+
+        if(req.body.price !== undefined)
+            data.price=Number(req.body.price);
+
+
+
+        if(req.body.cover_type)
+            data.cover_type=req.body.cover_type;
+
+
+
+        if(req.body.min_pages !== undefined)
+            data.min_pages=Number(req.body.min_pages);
+
+
+
+        if(req.body.max_pages !== undefined)
+            data.max_pages=Number(req.body.max_pages);
+
+
+
+
+
+        if(req.file){
+
+            data.image =
+            `uploads/products/${req.file.filename}`;
+
+        }
+
+
+
+
+
+        const product = await prisma.products.update({
+
+            where:{
+                id:req.params.id
+            },
+
+
+            data
+
+        });
+
+
+
+
+
+        res.json({
+
+            success:true,
+
+            data:product
+
+        });
+
+
+
+
+    }catch(error){
+
+
+        res.status(500).json({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
+
+};
+
+
+
+
+
+
+
+// =======================
+// DELETE PRODUCT
+// =======================
+
+exports.deleteProduct = async(req,res)=>{
+
+
+    try{
+
+
+        await prisma.products.delete({
+
+            where:{
+                id:req.params.id
+            }
+
+        });
+
+
+
+
+
+        res.json({
+
+            success:true,
+
+            message:"Product deleted successfully"
+
+        });
+
+
+
+
+    }catch(error){
+
+
+        res.status(500).json({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
+
+};
+
+
+
+
+
+
+
+// =======================
+// SEARCH PRODUCTS
+// Filter + Pagination + Sort
+// =======================
+
+exports.searchProducts = async(req,res)=>{
+
+
+    try{
+
+
+        let {
+
+            q,
+
+            category,
+
+            priceFrom,
+
+            priceTo,
+
+            page=1,
+
+            limit=20,
+
+            sort="newest"
+
+
+        } = req.query;
+
+
+
+
+
+        page=Number(page);
+
+        limit=Number(limit);
+
+
+
+
+        if(limit > 100)
+            limit=100;
+
+
+
+
+
+        const where={};
+
+
+
+
+
+        if(q){
+
+            where.OR=[
+
+                {
+                    title:{
+                        contains:q,
+                        mode:"insensitive"
+                    }
+                },
+
+                {
+                    description:{
+                        contains:q,
+                        mode:"insensitive"
+                    }
+                }
+
+            ];
+
+        }
+
+
+
+
+
+        if(category){
+
+
+            where.categories={
+
+                name:category
+
+            };
+
+
+        }
+
+
+
+
+
+
+        if(priceFrom || priceTo){
+
+
+            where.price={};
+
+
+            if(priceFrom)
+                where.price.gte=Number(priceFrom);
+
+
+
+            if(priceTo)
+                where.price.lte=Number(priceTo);
+
+
+        }
+
+
+
+
+
+
+        let orderBy={
+            created_at:"desc"
+        };
+
+
+
+
+        if(sort==="price_asc")
+            orderBy={price:"asc"};
+
+
+
+        if(sort==="price_desc")
+            orderBy={price:"desc"};
+
+
+
+
+
+
+        const products = await prisma.products.findMany({
+
+            where,
+
+            orderBy,
+
+
+            skip:(page-1)*limit,
+
+
+            take:limit,
+
+
+            include:{
+                categories:true
+            }
+
+
+        });
+
+
+
+
+
+        const total = await prisma.products.count({
+
+            where
+
+        });
+
+
+
+
+
+        res.json({
+
+            success:true,
+
+            total,
+
+            page,
+
+            limit,
+
+            pages:Math.ceil(total/limit),
+
+            data:products
+
+        });
+
+
+
+
+
+    }catch(error){
+
+
+        res.status(500).json({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
 
 };

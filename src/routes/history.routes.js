@@ -21,18 +21,17 @@ const historyController = require("../controllers/history.controller");
  *   post:
  *     summary: Undo last album action
  *     tags: [History]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: albumId
  *         required: true
  *         schema:
  *           type: string
- *         description: Album ID
  *     responses:
  *       200:
  *         description: Undo successful
- *       404:
- *         description: Album history not found
  */
 router.post(
     "/albums/:albumId/undo",
@@ -40,31 +39,25 @@ router.post(
     historyController.undo
 );
 
-
 /**
  * @swagger
  * /api/albums/{albumId}/redo:
  *   post:
  *     summary: Redo last album action
  *     tags: [History]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: albumId
  *         required: true
  *         schema:
  *           type: string
- *         description: Album ID
  *     responses:
  *       200:
  *         description: Redo successful
- *       404:
- *         description: Album history not found
  */
-router.post(
-    "/albums/:albumId/redo",
-    auth,
-    historyController.redo
-);
+
 
 
 module.exports = router;

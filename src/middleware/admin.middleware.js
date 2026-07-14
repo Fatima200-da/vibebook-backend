@@ -2,38 +2,62 @@ module.exports = (req, res, next) => {
 
     try {
 
+        // =========================
+        // CHECK AUTH USER
+        // =========================
+
         if (!req.user) {
 
             return res.status(401).json({
+
                 success: false,
-                message: "Unauthorized."
+
+                message: "Unauthorized"
+
             });
 
         }
 
+        // =========================
+        // CHECK ROLE
+        // =========================
+
         const allowedRoles = [
+
             "ADMIN",
+
             "SUPER_ADMIN"
+
         ];
 
-        if (!allowedRoles.includes(req.user.role)) {
+        if (
+
+            !allowedRoles.includes(req.user.role)
+
+        ) {
 
             return res.status(403).json({
+
                 success: false,
-                message: "Access denied."
+
+                message: "Access denied. Admin permission required."
+
             });
 
         }
 
         next();
 
-    } catch (err) {
+    }
 
-        console.error(err);
+    catch (error) {
 
         return res.status(500).json({
+
             success: false,
-            message: "Server error."
+
+            message: "Authorization error"
+
         });
 
     }

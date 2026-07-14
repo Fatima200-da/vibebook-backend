@@ -5,57 +5,40 @@ const router = express.Router();
 const auth = require("../middleware/auth.middleware");
 const admin = require("../middleware/admin.middleware");
 
+const validate = require("../middleware/validation.middleware");
+
 const controller = require("../controllers/template.controller");
 
 
-/**
- * @swagger
- * tags:
- *   name: Templates
- *   description: Template Management APIs
- */
+// GET ALL TEMPLATES
+router.get(
+    "/",
+    auth,
+    admin,
+    controller.getTemplates
+);
 
 
-/**
- * @swagger
- * /api/templates/{id}/apply:
- *   post:
- *     summary: Apply template to album
- *     tags: [Templates]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Template ID
- *
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               album_id:
- *                 type: string
- *                 example: ac2123f3-6ad5-4739-8920-0e7bc86dbf5c
- *
- *     responses:
- *       200:
- *         description: Template applied successfully
- *
- *       404:
- *         description: Template or album not found
- *
- */
+// GET SINGLE TEMPLATE
+router.get(
+    "/:id",
+    auth,
+    admin,
+    controller.getTemplateById
+);
+
+
+// APPLY TEMPLATE
 router.post(
     "/:id/apply",
     auth,
+    admin,
+    validate([
+        "album_id"
+    ]),
     controller.applyTemplate
 );
+
 
 
 module.exports = router;

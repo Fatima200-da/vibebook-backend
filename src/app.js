@@ -78,7 +78,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/covers", coverRoutes);
-app.use("/api/templates", templateRoutes);
+
+app.use(
+    "/api/templates",
+    templateRoutes
+);
 
 app.use("/api/albums", albumRoutes);
 
@@ -114,11 +118,9 @@ app.use(
 // 404
 // =======================
 
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "Route not found",
-    });
+app.use((req, res, next) => {
+    console.log(req.method, req.originalUrl);
+    next();
 });
 
 // =======================
