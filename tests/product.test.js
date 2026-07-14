@@ -30,19 +30,25 @@ describe("Products API", () => {
 
     test("Get Products", async () => {
 
-        const response = await request(app)
+       const response = await request(app)
 
-            .get("/api/products")
+    .post("/api/products")
 
-            .set("Authorization", `Bearer ${token}`);
+    .set("Authorization", `Bearer ${token}`)
 
-        expect(response.status).toBe(200);
-
-        expect(response.body.success).toBe(true);
-
-        expect(Array.isArray(response.body.data)).toBe(true);
-
+    .send({
+        category_id: "ab2c665b-21c0-4866-b900-2a07fde05eb5",
+        title: "Jest Test Product",
+        description: "Created by Jest",
+        price: 150,
+        cover_type: "Hard",
+        min_pages: 20,
+        max_pages: 40
     });
+
+console.log(response.body);
+
+expect(response.status).toBe(201);
 
     test("Search Products", async () => {
 
