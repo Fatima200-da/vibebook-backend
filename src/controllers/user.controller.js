@@ -37,8 +37,6 @@ exports.getUsers = async (req, res) => {
                 email: true,
                 phone: true,
                 role: true,
-                is_verified: true,
-                is_active: true,
                 created_at: true
 
             }
@@ -156,8 +154,6 @@ exports.searchUsers = async (req, res) => {
                 email: true,
                 phone: true,
                 role: true,
-                is_verified: true,
-                is_active: true,
                 created_at: true
 
             }
