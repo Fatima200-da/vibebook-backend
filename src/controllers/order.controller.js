@@ -36,8 +36,7 @@ exports.getOrders = async (req, res) => {
             where,
 
             include: {
-                users: true,
-                albums: true
+                users: true
             },
 
             orderBy,
@@ -93,8 +92,7 @@ exports.getOrderById = async (req, res) => {
             },
 
             include: {
-                users: true,
-                albums: true
+                users: true
             }
 
         });
@@ -300,8 +298,7 @@ exports.searchOrders = async (req, res) => {
 
             include: {
 
-                users: true,
-                albums: true
+                users: true
 
             },
 
@@ -368,8 +365,7 @@ exports.searchOrders = async (req, res) => {
             },
 
             include: {
-
-                albums: true,
+                
                 payments: true
 
             }

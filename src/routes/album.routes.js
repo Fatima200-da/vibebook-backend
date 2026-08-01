@@ -40,7 +40,16 @@ router.post(
     albumController.createAlbum
 );
 
+// =======================
+// GET ALL ALBUMS
+// =======================
 
+router.get(
+    "/",
+    auth,
+    validate(),
+    albumController.getAlbums
+);
 
 
 // =======================

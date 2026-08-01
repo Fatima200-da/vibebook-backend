@@ -2,31 +2,50 @@ const prisma = require("../config/prisma");
 
 
 // GET ALL COVERS
-exports.getCovers = async (req,res)=>{
-    try{
+exports.getCovers = async (req, res) => {
+  try {
+    const page = Number(req.query.page || 1);
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
-        const covers = await prisma.covers.findMany({
-            include:{
-                products:true
-            }
-        });
+    const search = req.query.search || "";
 
-        res.json({
-            success:true,
-            data:covers
-        });
+    const where = {
+      name: {
+        contains: search,
+      },
+    };
 
-    }catch(err){
+    const total = await prisma.covers.count({
+      where,
+    });
 
-        console.log(err);
+    const covers = await prisma.covers.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        created_at: "desc",
+      },
+    });
 
-        res.status(500).json({
-            success:false,
-            message:"Server xətası"
-        });
-    }
+    res.json({
+      success: true,
+      data: covers,
+      page,
+      pages: Math.ceil(total / limit),
+      total,
+    });
+
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
 };
-
 
 
 
@@ -71,31 +90,24 @@ exports.getCoverById = async(req,res)=>{
 
 };
 
-
-
-
-
 // CREATE COVER
 exports.createCover = async(req,res)=>{
 
     try{
 
         const {
-            product_id,
-            title,
-            image
-        } = req.body;
+    name,
+    image,
+    type
+} = req.body;
 
-
-        const cover = await prisma.covers.create({
-
-            data:{
-                product_id,
-                title,
-                image
-            }
-
-        });
+const cover = await prisma.covers.create({
+    data:{
+        name,
+        image,
+        type
+    }
+});
 
 
         res.status(201).json({

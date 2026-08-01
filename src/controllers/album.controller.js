@@ -1,652 +1,742 @@
 const prisma = require("../config/prisma");
 
-
-// =======================
+// ======================================
 // CREATE ALBUM
-// =======================
+// ======================================
 
 exports.createAlbum = async (req, res) => {
 
-    try {
+  try {
 
-        const {
-            product_id,
-            title,
-            total_pages
-        } = req.body;
+    const {
+      product_id,
+      template_id,
+      title,
+      total_pages,
+    } = req.body;
 
+    const album = await prisma.albums.create({
 
-        const album = await prisma.albums.create({
+      data: {
 
-            data: {
+        user_id: req.user.id,
 
-                user_id: req.user.id,
+        product_id,
 
-                product_id,
+        template_id,
 
-                title,
+        title,
 
-                total_pages: Number(total_pages),
+        total_pages: Number(total_pages),
 
-                status: "Draft"
+        status: "DRAFT",
 
-            }
+      },
 
-        });
+    });
 
+    return res.status(201).json({
 
-        res.status(201).json({
+      success: true,
 
-            success: true,
+      data: album,
 
-            data: album
+    });
 
-        });
+  } catch (error) {
 
+    console.error(error);
 
-    } catch (err) {
+    return res.status(500).json({
 
-        console.log(err);
+      success: false,
 
+      message: error.message,
 
-        res.status(500).json({
+    });
 
-            success:false,
-
-            message:err.message
-
-        });
-
-    }
+  }
 
 };
 
+// ======================================
+// GET ALL ALBUMS
+// ======================================
 
+exports.getAlbums = async (req, res) => {
+  try {
+    const page = Number(req.query.page || 1);
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
+    const search = req.query.search || "";
 
-// =======================
-// GET ALBUM BY ID
-// =======================
+    const where = {
+      title: {
+        contains: search,
+        mode: "insensitive",
+      },
+    };
 
-exports.getAlbum = async (req,res)=>{
+    if (req.user.role === "USER") {
+      where.user_id = req.user.id;
+    }
 
-    try{
+    const total = await prisma.albums.count({
+      where,
+    });
 
+    const albums = await prisma.albums.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        created_at: "desc",
+      },
+      include: {
+        users: true,
+        products: true,
+        templates: true,
+      },
+    });
 
-        const album = await prisma.albums.findUnique({
+    return res.json({
+      success: true,
+      data: albums,
+      page,
+      pages: Math.ceil(total / limit),
+      total,
+    });
+  } catch (error) {
+    console.error(error);
 
-            where:{
-                id:req.params.id
-            },
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
+// ======================================
+// GET ALBUM
+// ======================================
 
-            include:{
+exports.getAlbum = async (req, res) => {
 
+  try {
 
-                products:true,
+    const album = await prisma.albums.findUnique({
 
-                covers:true,
+      where: {
 
-                templates:true,
+        id: req.params.id,
 
+      },
 
-                album_pages:{
+      include: {
 
+        users: true,
 
-                    orderBy:{
-                        page_number:"asc"
-                    },
+        products: true,
 
+        templates: true,
 
-                    include:{
+        pages: {
 
+          orderBy: {
 
-                        photos:true,
+            page_number: "asc",
 
-                        text_layers:true
+          },
 
+          include: {
 
-                    }
+            photos: true,
 
+            texts: true,
 
-                }
+          },
 
+        },
 
-            }
+      },
 
+    });
 
-        });
+    if (!album) {
 
+      return res.status(404).json({
 
+        success: false,
 
-        if(!album){
+        message: "Album tapılmadı",
 
-            return res.status(404).json({
-
-                success:false,
-
-                message:"Album tapılmadı"
-
-            });
-
-        }
-
-
-
-        res.json({
-
-            success:true,
-
-            data:album
-
-        });
-
-
-
-    }catch(err){
-
-
-        console.log(err);
-
-
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
+      });
 
     }
 
+    if (req.user.role === "USER" && album.user_id !== req.user.id) {
+
+      return res.status(403).json({
+
+        success: false,
+
+        message: "Access denied",
+
+      });
+
+    }
+
+    return res.json({
+
+      success: true,
+
+      data: album,
+
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
+
 };
-
-
-
-
-// =======================
+// ======================================
 // UPDATE ALBUM
-// =======================
+// ======================================
 
-exports.updateAlbum = async(req,res)=>{
+exports.updateAlbum = async (req, res) => {
 
+  try {
 
-    try{
+    const existing = await prisma.albums.findUnique({
 
+      where: {
+        id: req.params.id,
+      },
 
-        const album = await prisma.albums.update({
+    });
 
+    if (!existing) {
 
-            where:{
+      return res.status(404).json({
 
-                id:req.params.id
+        success: false,
 
-            },
+        message: "Album tapılmadı",
 
-
-            data:req.body
-
-
-        });
-
-
-
-        res.json({
-
-            success:true,
-
-            data:album
-
-        });
-
-
-
-    }catch(err){
-
-
-        console.log(err);
-
-
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
+      });
 
     }
 
+    if (req.user.role === "USER" && existing.user_id !== req.user.id) {
+
+      return res.status(403).json({
+
+        success: false,
+
+        message: "Access denied",
+
+      });
+
+    }
+
+    const {
+      product_id,
+      template_id,
+      title,
+      total_pages,
+      status,
+    } = req.body;
+
+    const album = await prisma.albums.update({
+
+      where: {
+        id: req.params.id,
+      },
+
+      data: {
+
+        product_id,
+
+        template_id,
+
+        title,
+
+        total_pages: total_pages
+          ? Number(total_pages)
+          : undefined,
+
+        status,
+
+      },
+
+    });
+
+    return res.json({
+
+      success: true,
+
+      data: album,
+
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
 
 };
 
-
-
-
-// =======================
+// ======================================
 // DELETE ALBUM
-// =======================
+// ======================================
 
-exports.deleteAlbum = async(req,res)=>{
+exports.deleteAlbum = async (req, res) => {
 
+  try {
 
-    try{
+    const existing = await prisma.albums.findUnique({
 
+      where: {
+        id: req.params.id,
+      },
 
-        await prisma.albums.delete({
+    });
 
-            where:{
+    if (!existing) {
 
-                id:req.params.id
+      return res.status(404).json({
 
-            }
+        success: false,
 
-        });
+        message: "Album tapılmadı",
 
-
-
-        res.json({
-
-            success:true,
-
-            message:"Album silindi"
-
-        });
-
-
-
-    }catch(err){
-
-
-        console.log(err);
-
-
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
+      });
 
     }
 
+    if (req.user.role === "USER" && existing.user_id !== req.user.id) {
 
-};
+      return res.status(403).json({
 
+        success: false,
 
+        message: "Access denied",
 
+      });
 
-// =======================
-// DUPLICATE ALBUM
-// =======================
+    }
 
-exports.duplicateAlbum = async(req,res)=>{
+    await prisma.$transaction(async (tx) => {
 
+      const pages = await tx.album_pages.findMany({
 
-    try{
+        where: {
+          album_id: req.params.id,
+        },
 
+        select: {
+          id: true,
+        },
 
-        const oldAlbum = await prisma.albums.findUnique({
+      });
 
+      const pageIds = pages.map(
+        (page) => page.id
+      );
 
-            where:{
+      if (pageIds.length > 0) {
 
-                id:req.params.id
+        await tx.photos.deleteMany({
 
+          where: {
+
+            page_id: {
+              in: pageIds,
             },
 
-
-            include:{
-
-
-                album_pages:{
-
-
-                    include:{
-
-
-                        photos:true,
-
-                        text_layers:true
-
-
-                    }
-
-
-                }
-
-
-            }
-
+          },
 
         });
 
+        await tx.text_layers.deleteMany({
 
+          where: {
 
-        if(!oldAlbum){
+            page_id: {
+              in: pageIds,
+            },
 
-
-            return res.status(404).json({
-
-                success:false,
-
-                message:"Album tapılmadı"
-
-            });
-
-
-        }
-
-
-
-        const newAlbum = await prisma.albums.create({
-
-
-            data:{
-
-
-                user_id:oldAlbum.user_id,
-
-                product_id:oldAlbum.product_id,
-
-                cover_id:oldAlbum.cover_id,
-
-                template_id:oldAlbum.template_id,
-
-                title:oldAlbum.title + " Copy",
-
-                total_pages:oldAlbum.total_pages,
-
-                status:"Draft"
-
-
-            }
-
+          },
 
         });
 
+        await tx.album_pages.deleteMany({
 
+          where: {
 
-        for(const page of oldAlbum.album_pages){
+            id: {
+              in: pageIds,
+            },
 
+          },
 
-            const newPage = await prisma.album_pages.create({
+        });
 
+      }
 
-                data:{
+      await tx.albums.delete({
 
+        where: {
+          id: req.params.id,
+        },
 
-                    album_id:newAlbum.id,
+      });
 
-                    page_number:page.page_number,
+    });
 
-                    background:page.background
+    return res.json({
 
+      success: true,
 
-                }
+      message: "Album uğurla silindi",
 
+    });
 
-            });
+  } catch (error) {
 
+    console.error(error);
 
+    return res.status(500).json({
 
-            for(const photo of page.photos){
+      success: false,
 
+      message: error.message,
 
-                await prisma.photos.create({
+    });
 
+  }
 
-                    data:{
+};
+// ======================================
+// DUPLICATE ALBUM
+// ======================================
 
+exports.duplicateAlbum = async (req, res) => {
 
-                        album_page_id:newPage.id,
+  try {
 
-                        image_url:photo.image_url,
+    const oldAlbum = await prisma.albums.findUnique({
 
-                        x:photo.x,
+      where: {
+        id: req.params.id,
+      },
 
-                        y:photo.y,
+      include: {
 
-                        width:photo.width,
+        pages: {
 
-                        height:photo.height,
+          orderBy: {
+            page_number: "asc",
+          },
 
-                        rotation:photo.rotation,
+          include: {
+            photos: true,
+            texts: true,
+          },
 
-                        scale:photo.scale,
+        },
 
-                        opacity:photo.opacity,
+      },
 
-                        z_index:photo.z_index
+    });
 
+    if (!oldAlbum) {
 
-                    }
+      return res.status(404).json({
 
+        success: false,
 
-                });
+        message: "Album tapılmadı",
 
+      });
 
-            }
+    }
 
+    const newAlbum = await prisma.$transaction(async (tx) => {
 
-
-            for (const text of page.text_layers) {
-
-    await prisma.text_layers.create({
+      const album = await tx.albums.create({
 
         data: {
 
-            album_page_id: newPage.id,
+          user_id: oldAlbum.user_id,
 
-            content: text.content,
+          product_id: oldAlbum.product_id,
 
-            font: text.font,
+          template_id: oldAlbum.template_id,
 
-            color: text.color,
+          title: `${oldAlbum.title} Copy`,
 
-            size: text.size,
+          total_pages: oldAlbum.total_pages,
 
-            x: text.x,
+          status: "DRAFT",
 
-            y: text.y,
+        },
 
-            rotation: text.rotation,
+      });
 
-            font_weight: text.font_weight,
+      for (const page of oldAlbum.pages) {
 
-            alignment: text.alignment,
+        const newPage = await tx.album_pages.create({
 
-            line_height: text.line_height,
+          data: {
 
-            letter_spacing: text.letter_spacing
+            album_id: album.id,
+
+            page_number: page.page_number,
+
+            background: page.background,
+
+          },
+
+        });
+
+        // ==========================
+        // PHOTOS
+        // ==========================
+
+        for (const photo of page.photos) {
+
+          await tx.photos.create({
+
+            data: {
+
+              page_id: newPage.id,
+
+              url: photo.url,
+
+              position: photo.position,
+
+            },
+
+          });
 
         }
+
+        // ==========================
+        // TEXTS
+        // ==========================
+
+        for (const text of page.texts) {
+
+          await tx.text_layers.create({
+
+            data: {
+
+              page_id: newPage.id,
+
+              text: text.text,
+
+              style: text.style,
+
+            },
+
+          });
+
+        }
+
+      }
+
+      return album;
 
     });
 
-}
+    return res.json({
 
+      success: true,
 
-        }
+      message: "Album uğurla kopyalandı",
 
+      data: newAlbum,
 
+    });
 
-        res.json({
+  } catch (error) {
 
-            success:true,
+    console.error(error);
 
-            message:"Album uğurla kopyalandı",
+    return res.status(500).json({
 
-            data:newAlbum
+      success: false,
 
-        });
+      message: error.message,
 
+    });
 
-
-    }catch(err){
-
-
-        console.log(err);
-
-
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
-
-    }
-
+  }
 
 };
-
-
-
-
-// ===============================
-// ALBUM PREVIEW
-// ===============================
+// ======================================
+// PREVIEW ALBUM
+// ======================================
 
 exports.previewAlbum = async (req, res) => {
 
-    try {
+  try {
 
-        const { id } = req.params;
+    const album = await prisma.albums.findUnique({
 
+      where: {
+        id: req.params.id,
+      },
 
-        const album = await prisma.albums.findUnique({
+      include: {
 
-            where:{
-                id
-            },
+        users: true,
 
-            include:{
+        products: true,
 
+        templates: true,
 
-                products:true,
+        pages: {
 
-                covers:true,
+          orderBy: {
+            page_number: "asc",
+          },
 
-                templates:true,
+          include: {
 
+            photos: true,
 
-                album_pages:{
+            texts: true,
 
+          },
 
-                    orderBy:{
-                        page_number:"asc"
-                    },
+        },
 
+      },
 
-                    include:{
+    });
 
+    if (!album) {
 
-                        photos:true,
+      return res.status(404).json({
 
+        success: false,
 
-                        text_layers:true
+        message: "Album tapılmadı",
 
-
-                    }
-
-
-                }
-
-
-            }
-
-
-        });
-
-
-
-        if(!album){
-
-            return res.status(404).json({
-
-                success:false,
-
-                message:"Album tapılmadı"
-
-            });
-
-        }
-
-
-
-        return res.json({
-
-            success:true,
-
-            data:album
-
-        });
-
-
-
-    } catch(error){
-
-
-        console.log(error);
-
-
-        return res.status(500).json({
-
-            success:false,
-
-            message:error.message
-
-        });
-
+      });
 
     }
 
+    return res.json({
 
-};
-// =======================
-// UNDO
-// =======================
+      success: true,
 
-exports.undoAlbum = async(req,res)=>{
-
-
-    res.json({
-
-        success:true,
-
-        message:"Undo uğurla icra olundu",
-
-        albumId:req.params.id
+      data: album,
 
     });
 
+  } catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
 
 };
 
+// ======================================
+// UNDO
+// ======================================
 
+exports.undoAlbum = async (req, res) => {
 
+  try {
 
-// =======================
+    return res.json({
+
+      success: true,
+
+      message: "Undo hazırdır. History sistemi əlavə ediləcək.",
+
+      albumId: req.params.id,
+
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
+
+};
+
+// ======================================
 // REDO
-// =======================
+// ======================================
 
 exports.redoAlbum = async (req, res) => {
 
-    console.log("===== REDO =====");
-    console.log("req.user =", req.user);
-    console.log("req.params =", req.params);
+  try {
 
     return res.json({
-        success: true,
-        message: "Redo test",
-        user: req.user
+
+      success: true,
+
+      message: "Redo hazırdır. History sistemi əlavə ediləcək.",
+
+      albumId: req.params.id,
+
     });
+
+  } catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
 
 };

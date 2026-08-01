@@ -2,107 +2,64 @@ const express = require("express");
 
 const router = express.Router();
 
-
-const coverController = require("../controllers/cover.controller");
-
 const auth = require("../middleware/auth.middleware");
 const admin = require("../middleware/admin.middleware");
 
-const validate = require("../middleware/validation.middleware");
-
-
+const controller = require("../controllers/cover.controller");
 
 // =======================
 // GET ALL COVERS
 // =======================
 
 router.get(
-    "/",
-    auth,
-    admin,
-    coverController.getCovers
+  "/",
+  auth,
+  admin,
+  controller.getCovers
 );
 
-
-
-
 // =======================
-// GET COVER BY ID
+// GET SINGLE COVER
 // =======================
 
 router.get(
-    "/:id",
-    auth,
-    admin,
-    validate(),
-    coverController.getCoverById
+  "/:id",
+  auth,
+  admin,
+  controller.getCoverById
 );
-
-
-
 
 // =======================
 // CREATE COVER
 // =======================
 
 router.post(
-    "/",
-    auth,
-    admin,
-    validate(
-        [
-            "name",
-            "price"
-        ],
-        {
-            minLength:{
-                name:3
-            }
-        }
-    ),
-    coverController.createCover
+  "/",
+  auth,
+  admin,
+  controller.createCover
 );
-
-
-
 
 // =======================
 // UPDATE COVER
 // =======================
 
 router.put(
-    "/:id",
-    auth,
-    admin,
-    validate(
-        [
-            "name",
-            "price"
-        ],
-        {
-            minLength:{
-                name:3
-            }
-        }
-    ),
-    coverController.updateCover
+  "/:id",
+  auth,
+  admin,
+  controller.updateCover
 );
-
-
-
 
 // =======================
 // DELETE COVER
 // =======================
 
 router.delete(
-    "/:id",
-    auth,
-    admin,
-    validate(),
-    coverController.deleteCover
+  "/:id",
+  auth,
+  admin,
+  controller.deleteCover
 );
-
-
 
 module.exports = router;

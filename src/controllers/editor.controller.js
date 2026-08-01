@@ -159,3 +159,93 @@ exports.deletePage = async (req, res) => {
         });
     }
 };
+exports.getEditor = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const page =
+      await prisma.album_pages.findFirst({
+
+        where: {
+          album_id: id,
+        },
+
+        include: {
+          photos: true,
+          text_layers: true,
+        },
+
+      });
+
+    if (!page) {
+
+      return res.json({
+        success: true,
+        data: {
+          elements: [],
+        },
+      });
+
+    }
+
+    const elements = [];
+
+    page.photos.forEach(photo => {
+
+      elements.push({
+
+        id: photo.id,
+
+        type: "photo",
+
+        url: photo.url,
+
+        ...photo.position,
+
+      });
+
+    });
+
+    page.text_layers.forEach(text => {
+
+      elements.push({
+
+        id: text.id,
+
+        type: "text",
+
+        text: text.text,
+
+        ...text.style,
+
+      });
+
+    });
+
+    return res.json({
+
+      success: true,
+
+      data: {
+
+        elements,
+
+      },
+
+    });
+
+  } catch (error) {
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
+
+};

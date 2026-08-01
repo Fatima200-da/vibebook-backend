@@ -100,6 +100,8 @@ model products {
 
   albums albums[]
 
+  order_items order_items[]
+
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
@@ -171,6 +173,8 @@ model albums {
   templates templates? @relation(fields: [template_id], references: [id])
 
   pages album_pages[]
+
+  order_items order_items[]
 
   created_at DateTime @default(now())
 
@@ -252,9 +256,15 @@ model orders {
 
   total_price Decimal
 
+  shipping_name String?
+  shipping_phone String?
+  shipping_address String?
+
   users users? @relation(fields: [user_id], references: [id])
 
   payments payments[]
+
+  order_items order_items[]
 
   created_at DateTime @default(now())
 
@@ -280,20 +290,58 @@ model payments {
 }
 
 // =======================
+// ORDER ITEMS
+// =======================
+
+model order_items {
+  id String @id @default(uuid())
+
+  order_id String
+
+  product_id String?
+
+  album_id String?
+
+  title String
+
+  price Decimal
+
+  quantity Int @default(1)
+
+  orders orders @relation(fields: [order_id], references: [id])
+
+  products products? @relation(fields: [product_id], references: [id])
+
+  albums albums? @relation(fields: [album_id], references: [id])
+
+  created_at DateTime @default(now())
+}
+
+// =======================
 // SETTINGS
 // =======================
 
 model settings {
   id String @id @default(uuid())
 
-  key String @unique
+  company_name String?
+  phone String?
+  email String?
+  address String?
 
-  value String?
+  instagram String?
+  facebook String?
+
+  logo String?
+  favicon String?
+
+  primary_color String?
+  secondary_color String?
 
   created_at DateTime @default(now())
-
   updated_at DateTime @updatedAt
 }
+
 // =======================
 // AUDIT LOGS
 // =======================

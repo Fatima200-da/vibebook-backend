@@ -51,5 +51,9 @@ router.delete(
     auth,
     controller.deletePage
 );
-
+router.get(
+  "/:id",
+  auth,
+  controller.getEditor
+);
 module.exports = router;

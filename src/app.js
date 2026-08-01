@@ -30,6 +30,13 @@ const settingsRoutes = require("./routes/settings.routes");
 const uploadRoutes = require("./routes/upload.routes");
 const userRoutes = require("./routes/user.routes");
 
+const publicProductRoutes = require("./routes/publicProduct.routes");
+const publicCategoryRoutes = require("./routes/publicCategory.routes");
+const publicTemplateRoutes = require("./routes/publicTemplate.routes");
+const publicSettingsRoutes = require("./routes/publicSettings.routes");
+const customerOrderRoutes = require("./routes/customerOrder.routes");
+const meRoutes = require("./routes/me.routes");
+
 const healthRoutes = require("./routes/health.routes");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -41,8 +48,11 @@ const app = express();
 // SECURITY
 // =======================
 
-app.use(helmet());
-
+// app.use(helmet());app.use(
+  //helmet({
+  //  crossOriginResourcePolicy: false,
+  //})
+//);
 app.use(cors());
 
 app.use(compression());
@@ -138,6 +148,13 @@ app.use("/api/admin/settings", settingsRoutes);
 app.use("/api/upload", uploadRoutes);
 
 app.use("/api/users", userRoutes);
+
+app.use("/api/public/products", publicProductRoutes);
+app.use("/api/public/categories", publicCategoryRoutes);
+app.use("/api/public/templates", publicTemplateRoutes);
+app.use("/api/public/settings", publicSettingsRoutes);
+app.use("/api/orders", customerOrderRoutes);
+app.use("/api/me", meRoutes);
 
 app.use("/api/health", healthRoutes);
 
