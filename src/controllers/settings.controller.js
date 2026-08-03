@@ -31,6 +31,41 @@ exports.getSettings = async (req, res) => {
 
 
 // =======================
+// GET PUBLIC CONTACT INFO
+// =======================
+
+exports.getPublicContactInfo = async (req, res) => {
+
+    try {
+
+        const settings = await prisma.settings.findFirst();
+
+        res.json({
+            success: true,
+            data: settings
+                ? {
+                    email: settings.email,
+                    phone: settings.phone,
+                    address: settings.address
+                }
+                : null
+        });
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+
+};
+
+
+// =======================
 // UPDATE SETTINGS
 // =======================
 

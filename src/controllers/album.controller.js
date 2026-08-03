@@ -649,6 +649,18 @@ exports.previewAlbum = async (req, res) => {
 
     }
 
+    if (req.user.role === "USER" && album.user_id !== req.user.id) {
+
+      return res.status(403).json({
+
+        success: false,
+
+        message: "Access denied",
+
+      });
+
+    }
+
     return res.json({
 
       success: true,

@@ -28,8 +28,32 @@ model users {
 
   orders orders[]
 
+  addresses addresses[]
+
+  wishlist_items wishlist_items[]
+
+  reviews reviews[]
+
   created_at DateTime @default(now())
 
+  updated_at DateTime @updatedAt
+}
+
+model addresses {
+  id String @id @default(uuid())
+
+  user_id String
+
+  label String?
+  full_name String
+  phone String
+  address_line String
+
+  is_default Boolean @default(false)
+
+  users users @relation(fields: [user_id], references: [id])
+
+  created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
 
@@ -102,9 +126,46 @@ model products {
 
   order_items order_items[]
 
+  wishlist_items wishlist_items[]
+
+  reviews reviews[]
+
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
+}
+
+model reviews {
+  id String @id @default(uuid())
+
+  user_id String
+  product_id String
+
+  rating Int
+  title String?
+  comment String
+
+  users users @relation(fields: [user_id], references: [id])
+  products products @relation(fields: [product_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([user_id, product_id])
+}
+
+model wishlist_items {
+  id String @id @default(uuid())
+
+  user_id String
+  product_id String
+
+  users users @relation(fields: [user_id], references: [id])
+  products products @relation(fields: [product_id], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@unique([user_id, product_id])
 }
 
 // =======================
@@ -340,6 +401,17 @@ model settings {
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+model contact_messages {
+  id String @id @default(uuid())
+
+  name String
+  email String
+  subject String
+  message String
+
+  created_at DateTime @default(now())
 }
 
 // =======================

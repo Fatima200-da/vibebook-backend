@@ -12,5 +12,6 @@ const settingsController = require("../controllers/settings.controller");
  */
 
 router.get("/", settingsController.getSettings);
+router.get("/contact", settingsController.getPublicContactInfo);
 
 module.exports = router;

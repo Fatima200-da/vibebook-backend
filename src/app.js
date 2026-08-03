@@ -34,8 +34,12 @@ const publicProductRoutes = require("./routes/publicProduct.routes");
 const publicCategoryRoutes = require("./routes/publicCategory.routes");
 const publicTemplateRoutes = require("./routes/publicTemplate.routes");
 const publicSettingsRoutes = require("./routes/publicSettings.routes");
+const publicContactRoutes = require("./routes/publicContact.routes");
 const customerOrderRoutes = require("./routes/customerOrder.routes");
 const meRoutes = require("./routes/me.routes");
+const addressRoutes = require("./routes/address.routes");
+const wishlistRoutes = require("./routes/wishlist.routes");
+const reviewRoutes = require("./routes/review.routes");
 
 const healthRoutes = require("./routes/health.routes");
 const cors = require("cors");
@@ -153,8 +157,12 @@ app.use("/api/public/products", publicProductRoutes);
 app.use("/api/public/categories", publicCategoryRoutes);
 app.use("/api/public/templates", publicTemplateRoutes);
 app.use("/api/public/settings", publicSettingsRoutes);
+app.use("/api/public/contact", publicContactRoutes);
 app.use("/api/orders", customerOrderRoutes);
 app.use("/api/me", meRoutes);
+app.use("/api/me/addresses", addressRoutes);
+app.use("/api/me/wishlist", wishlistRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.use("/api/health", healthRoutes);
 
