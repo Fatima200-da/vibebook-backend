@@ -1,17 +1,27 @@
-# Render Blueprint — declarative deployment spec for VibeBook staging/production.
+# Render Blueprint — declarative deployment spec for VibeBook STAGING.
 #
 # This file describes the deployment; it does NOT create anything by itself.
 # Nothing is provisioned until a human connects this repo to a Render account
 # and applies the blueprint from the Render dashboard.
 #
-# Backend + Static Site are declared here (same repo). The frontend
+# Backend + Staging Postgres are declared here (same repo). The frontend
 # (vibebook-frontend) lives in a separate repository and is deployed as its
 # own Render Static Site — see vibebook-frontend/render.yaml.
 #
 # Values written directly here are non-secret. Every secret-shaped variable
 # uses `sync: false`, which tells Render to prompt for the value in its
 # dashboard instead of reading it from this file — no secret is ever
-# committed to this repository.
+# committed to this repository. DATABASE_URL is the one exception: it is
+# wired via `fromDatabase` below, which Render injects automatically from
+# the staging Postgres instance's own connection string — never typed in,
+# never invented, never stored in this file either.
+
+databases:
+  - name: vibebook-staging-db
+    region: frankfurt
+    plan: free
+    # Staging only. A separate, production-plan database (never this one)
+    # must be used for Phase 26 — see docs/ops/13-production-handover.md.
 
 services:
   - type: web
@@ -28,7 +38,9 @@ services:
       - key: PORT
         value: 5000
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: vibebook-staging-db
+          property: connectionString
       - key: JWT_SECRET
         sync: false
       - key: CORS_ORIGIN
