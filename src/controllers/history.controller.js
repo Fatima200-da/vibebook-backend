@@ -77,8 +77,6 @@ exports.undo = async (req, res) => {
 // =======================
 
 exports.redo = async (req, res) => {
-    console.log("REDO");
-    console.log(req.user);
     try {
 
         const { albumId } = req.params;

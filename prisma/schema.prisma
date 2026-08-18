@@ -55,6 +55,8 @@ model addresses {
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@index([user_id])
 }
 
 // =======================
@@ -108,7 +110,7 @@ model products {
 
   description String?
 
-  price Decimal
+  price Decimal @db.Decimal(10, 2)
 
   cover_type String?
 
@@ -117,6 +119,10 @@ model products {
   max_pages Int
 
   image String?
+
+  thickness_key String?
+
+  album_size_key String?
 
   is_deleted Boolean @default(false)
 
@@ -133,6 +139,8 @@ model products {
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
+
+  @@index([category_id])
 }
 
 model reviews {
@@ -152,6 +160,7 @@ model reviews {
   updated_at DateTime @updatedAt
 
   @@unique([user_id, product_id])
+  @@index([product_id])
 }
 
 model wishlist_items {
@@ -166,6 +175,7 @@ model wishlist_items {
   created_at DateTime @default(now())
 
   @@unique([user_id, product_id])
+  @@index([product_id])
 }
 
 // =======================
@@ -198,6 +208,8 @@ model templates {
   description String?
 
   preview_image String?
+
+  album_size_key String?
 
   pages Json?
 
@@ -240,6 +252,10 @@ model albums {
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
+
+  @@index([user_id])
+  @@index([product_id])
+  @@index([template_id])
 }
 
 // =======================
@@ -264,6 +280,8 @@ model album_pages {
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
+
+  @@index([album_id])
 }
 
 // =======================
@@ -275,13 +293,15 @@ model photos {
 
   page_id String
 
-  url String
+  url String?
 
   position Json?
 
   page album_pages @relation(fields: [page_id], references: [id])
 
   created_at DateTime @default(now())
+
+  @@index([page_id])
 }
 
 // =======================
@@ -300,6 +320,8 @@ model text_layers {
   page album_pages @relation(fields: [page_id], references: [id])
 
   created_at DateTime @default(now())
+
+  @@index([page_id])
 }
 
 // =======================
@@ -313,9 +335,16 @@ model orders {
 
   album_id String?
 
-  status String @default("PENDING")
+  status String @default("Pending")
 
-  total_price Decimal
+  total_price Decimal @db.Decimal(10, 2)
+
+  delivery_method String?
+  delivery_fee Decimal @default(0) @db.Decimal(10, 2)
+
+  discount_code String?
+  discount_kind String?
+  discount_amount Decimal @default(0) @db.Decimal(10, 2)
 
   shipping_name String?
   shipping_phone String?
@@ -330,6 +359,51 @@ model orders {
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
+
+  @@index([user_id])
+}
+
+// =======================
+// PROMO CODES & GIFT CARDS
+//
+// code is always normalized to uppercase before insert/lookup, so the
+// @unique constraint enforces case-insensitive uniqueness without needing
+// a citext column.
+// =======================
+
+model promo_codes {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  discount_type String
+  discount_value Decimal @db.Decimal(10, 2)
+
+  min_order_amount Decimal? @db.Decimal(10, 2)
+
+  usage_limit Int?
+  used_count Int @default(0)
+
+  expires_at DateTime?
+  active Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model gift_cards {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  initial_balance Decimal @db.Decimal(10, 2)
+  remaining_balance Decimal @db.Decimal(10, 2)
+
+  expires_at DateTime?
+  active Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 // =======================
@@ -341,13 +415,21 @@ model payments {
 
   order_id String
 
-  amount Decimal
+  amount Decimal @db.Decimal(10, 2)
+  currency String @default("AZN")
 
-  status String
+  status String @default("PENDING")
+
+  provider String?
+  provider_transaction_id String? @unique
+  method String?
 
   orders orders @relation(fields: [order_id], references: [id])
 
   created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([order_id])
 }
 
 // =======================
@@ -365,7 +447,7 @@ model order_items {
 
   title String
 
-  price Decimal
+  price Decimal @db.Decimal(10, 2)
 
   quantity Int @default(1)
 
@@ -376,6 +458,10 @@ model order_items {
   albums albums? @relation(fields: [album_id], references: [id])
 
   created_at DateTime @default(now())
+
+  @@index([order_id])
+  @@index([product_id])
+  @@index([album_id])
 }
 
 // =======================

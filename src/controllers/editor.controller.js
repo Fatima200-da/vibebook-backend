@@ -1,5 +1,13 @@
 const prisma = require("../config/prisma");
 
+// Same ownership rule as album.controller.js (USER role must own the album;
+// ADMIN/SUPER_ADMIN unrestricted) - this legacy /api/editor/* surface reads
+// and mutates album pages/photos/texts directly by id, so it needs the exact
+// same guard the main album routes already enforce.
+function isDenied(album, req) {
+    return req.user.role === "USER" && album.user_id !== req.user.id;
+}
+
 // =======================
 // GET ALBUM EDITOR
 // =======================
@@ -31,6 +39,13 @@ exports.getAlbum = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Album tapılmadı",
+            });
+        }
+
+        if (isDenied(album, req)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied",
             });
         }
 
@@ -66,6 +81,13 @@ exports.createPage = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Album tapılmadı",
+            });
+        }
+
+        if (isDenied(album, req)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied",
             });
         }
 
@@ -116,12 +138,22 @@ exports.deletePage = async (req, res) => {
             where: {
                 id,
             },
+            include: {
+                album: true,
+            },
         });
 
         if (!page) {
             return res.status(404).json({
                 success: false,
                 message: "Page tapılmadı",
+            });
+        }
+
+        if (isDenied(page.album, req)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied",
             });
         }
 
@@ -164,6 +196,24 @@ exports.getEditor = async (req, res) => {
   try {
 
     const { id } = req.params;
+
+    const album = await prisma.albums.findUnique({
+      where: { id },
+    });
+
+    if (!album) {
+      return res.status(404).json({
+        success: false,
+        message: "Album tapılmadı",
+      });
+    }
+
+    if (isDenied(album, req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
 
     const page =
       await prisma.album_pages.findFirst({

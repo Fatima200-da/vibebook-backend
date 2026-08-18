@@ -22,19 +22,19 @@ exports.getDashboard = async (req, res) => {
 
       prisma.orders.count({
         where: {
-          status: "PENDING",
+          status: "Pending",
         },
       }),
 
       prisma.orders.count({
         where: {
-          status: "PREPARING",
+          status: "Preparing",
         },
       }),
 
       prisma.orders.count({
         where: {
-          status: "DELIVERED",
+          status: "Delivered",
         },
       }),
 

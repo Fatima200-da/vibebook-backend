@@ -49,16 +49,25 @@ jobs:
         uses: actions/setup-node@v4
 
         with:
-          node-version: 22
+          node-version-file: ".nvmrc"
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate Prisma Client
         run: npx prisma generate
 
       - name: Run Migrations
         run: npx prisma migrate deploy
+
+      - name: Schema Drift Check
+        # Confirms prisma/migrations/* and schema.prisma agree, same
+        # read-only technique established in Phase 21. --exit-code makes
+        # this machine-checkable (0 = no diff, 2 = diff found) - the
+        # command's own stdout is a "-- This is an empty migration."
+        # placeholder even when there's nothing to report, so a plain
+        # output-emptiness check would never fail here.
+        run: npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script --exit-code
 
       - name: Seed Database
         run: npm run seed

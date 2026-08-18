@@ -1,5 +1,45 @@
 const prisma = require("../config/prisma");
 
+// Resolves a page id to its owning album and enforces the same ownership
+// rule as album.controller.js (USER role must own the album; ADMIN/SUPER_ADMIN
+// unrestricted). Returns { deniedStatus, deniedMessage } on failure so callers
+// can short-circuit with a single early return, or { page } on success.
+async function assertPageOwnership(pageId, req) {
+  const page = await prisma.album_pages.findUnique({
+    where: { id: pageId },
+    include: { album: true },
+  });
+
+  if (!page) {
+    return { deniedStatus: 404, deniedMessage: "Page tapılmadı" };
+  }
+
+  if (req.user.role === "USER" && page.album.user_id !== req.user.id) {
+    return { deniedStatus: 403, deniedMessage: "Access denied" };
+  }
+
+  return { page };
+}
+
+// Resolves a photo id to its owning album (via its page) and enforces the
+// same ownership rule.
+async function assertPhotoOwnership(photoId, req) {
+  const photo = await prisma.photos.findUnique({
+    where: { id: photoId },
+    include: { page: { include: { album: true } } },
+  });
+
+  if (!photo) {
+    return { deniedStatus: 404, deniedMessage: "Photo tapılmadı" };
+  }
+
+  if (req.user.role === "USER" && photo.page.album.user_id !== req.user.id) {
+    return { deniedStatus: 403, deniedMessage: "Access denied" };
+  }
+
+  return { photo };
+}
+
 
 // ADD PHOTO
 
@@ -10,6 +50,14 @@ try{
 
 
 const {id}=req.params;
+
+const ownership = await assertPageOwnership(id, req);
+if (ownership.deniedStatus) {
+  return res.status(ownership.deniedStatus).json({
+    success: false,
+    message: ownership.deniedMessage,
+  });
+}
 
 
 const {
@@ -103,6 +151,14 @@ try{
 
 const {id}=req.params;
 
+const ownership = await assertPhotoOwnership(id, req);
+if (ownership.deniedStatus) {
+  return res.status(ownership.deniedStatus).json({
+    success: false,
+    message: ownership.deniedMessage,
+  });
+}
+
 
 const photo = await prisma.photos.update({
 
@@ -151,6 +207,14 @@ exports.deletePhoto = async(req,res)=>{
 
 try{
 
+
+const ownership = await assertPhotoOwnership(req.params.id, req);
+if (ownership.deniedStatus) {
+  return res.status(ownership.deniedStatus).json({
+    success: false,
+    message: ownership.deniedMessage,
+  });
+}
 
 await prisma.photos.delete({
 

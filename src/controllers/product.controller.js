@@ -266,9 +266,27 @@ exports.createProduct = async(req,res)=>{
             cover_type,
             min_pages,
             max_pages,
-            image
+            image,
+            thickness_key,
+            album_size_key
 
         } = req.body;
+
+        const ALLOWED_THICKNESS_KEYS = ["mini", "classic", "gold", "platinum"];
+        if (thickness_key !== undefined && thickness_key !== null && thickness_key !== "" && !ALLOWED_THICKNESS_KEYS.includes(thickness_key)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid thickness_key"
+            });
+        }
+
+        const ALLOWED_ALBUM_SIZE_KEYS = ["20x20", "30x30", "a4"];
+        if (album_size_key !== undefined && album_size_key !== null && album_size_key !== "" && !ALLOWED_ALBUM_SIZE_KEYS.includes(album_size_key)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid album_size_key"
+            });
+        }
 
 
 
@@ -300,7 +318,13 @@ exports.createProduct = async(req,res)=>{
 
                 image:req.file
                     ? `uploads/products/${req.file.filename}`
-                    : image
+                    : image,
+
+
+                thickness_key: thickness_key || null,
+
+
+                album_size_key: album_size_key || null
 
 
             }
@@ -411,6 +435,32 @@ exports.updateProduct = async(req,res)=>{
             data.max_pages=Number(req.body.max_pages);
 
 
+
+        if(req.body.thickness_key !== undefined){
+
+            const ALLOWED_THICKNESS_KEYS = ["mini", "classic", "gold", "platinum"];
+            if(req.body.thickness_key !== null && req.body.thickness_key !== "" && !ALLOWED_THICKNESS_KEYS.includes(req.body.thickness_key)){
+                return res.status(400).json({
+                    success:false,
+                    message:"Invalid thickness_key"
+                });
+            }
+            data.thickness_key = req.body.thickness_key || null;
+        }
+
+
+
+        if(req.body.album_size_key !== undefined){
+
+            const ALLOWED_ALBUM_SIZE_KEYS = ["20x20", "30x30", "a4"];
+            if(req.body.album_size_key !== null && req.body.album_size_key !== "" && !ALLOWED_ALBUM_SIZE_KEYS.includes(req.body.album_size_key)){
+                return res.status(400).json({
+                    success:false,
+                    message:"Invalid album_size_key"
+                });
+            }
+            data.album_size_key = req.body.album_size_key || null;
+        }
 
 
 

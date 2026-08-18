@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const authController = require("../controllers/auth.controller");
+const { authLimiter } = require("../middleware/rateLimiters");
 
 
 /**
@@ -50,6 +51,7 @@ const authController = require("../controllers/auth.controller");
  */
 router.post(
     "/register",
+    authLimiter,
     authController.register
 );
 
@@ -85,6 +87,7 @@ router.post(
  */
 router.post(
     "/login",
+    authLimiter,
     authController.login
 );
 
@@ -120,6 +123,7 @@ router.post(
  */
 router.post(
     "/admin/login",
+    authLimiter,
     authController.adminLogin
 );
 

@@ -3,6 +3,17 @@ const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
 
+// products/covers/albums have no natural @unique field to upsert() against,
+// so re-running the seed with plain create() calls would duplicate them on
+// every run. This finds an existing row by the given lookup first, matching
+// the same idempotent intent as the upsert() calls used elsewhere in this
+// file.
+async function findOrCreate(model, where, data) {
+    const existing = await prisma[model].findFirst({ where });
+    if (existing) return existing;
+    return prisma[model].create({ data });
+}
+
 async function main() {
 
     console.log("🌱 Seeding database...");
@@ -123,9 +134,10 @@ async function main() {
     // PRODUCTS
     // =========================
 
-    const weddingProduct = await prisma.products.create({
-
-        data: {
+    const weddingProduct = await findOrCreate(
+        "products",
+        { title: "Premium Wedding Album" },
+        {
 
             category_id: weddingCategory.id,
 
@@ -144,12 +156,12 @@ async function main() {
             image: "uploads/products/wedding.jpg"
 
         }
+    );
 
-    });
-
-    const babyProduct = await prisma.products.create({
-
-        data: {
+    const babyProduct = await findOrCreate(
+        "products",
+        { title: "Baby Memories" },
+        {
 
             category_id: babyCategory.id,
 
@@ -168,12 +180,12 @@ async function main() {
             image: "uploads/products/baby.jpg"
 
         }
+    );
 
-    });
-
-    const travelProduct = await prisma.products.create({
-
-        data: {
+    const travelProduct = await findOrCreate(
+        "products",
+        { title: "Travel Book" },
+        {
 
             category_id: travelCategory.id,
 
@@ -192,12 +204,12 @@ async function main() {
             image: "uploads/products/travel.jpg"
 
         }
+    );
 
-    });
-
-    const classicProduct = await prisma.products.create({
-
-        data: {
+    const classicProduct = await findOrCreate(
+        "products",
+        { title: "Classic Album" },
+        {
 
             category_id: classicCategory.id,
 
@@ -216,34 +228,27 @@ async function main() {
             image: "uploads/products/classic.jpg"
 
         }
-
-    });
+    );
 
     console.log("✅ Products created");
        // =========================
        // COVERS
        // =========================
-        const cover1 = await prisma.covers.create({
-            data:{
+        const cover1 = await findOrCreate("covers", { name: "Luxury White Cover" }, {
                 name:"Luxury White Cover",
                 image:"uploads/covers/cover1.jpg",
                 type:"Hard Cover"
-             }
-            });
-            const cover2 = await prisma.covers.create({
-                data:{
+             });
+            const cover2 = await findOrCreate("covers", { name: "Classic Black Cover" }, {
                      name:"Classic Black Cover",
                       image:"uploads/covers/cover2.jpg",
                       type:"Soft Cover"
-                     }
-                    });
-                    const cover3 = await prisma.covers.create({
-                        data:{
+                     });
+                    const cover3 = await findOrCreate("covers", { name: "Travel Adventure Cover" }, {
                              name:"Travel Adventure Cover",
                              image:"uploads/covers/cover3.jpg",
                              type:"Premium Cover"
-                             }
-                            });
+                             });
                             console.log("✅ Covers created");
 // =========================
 // TEMPLATES
@@ -332,9 +337,10 @@ console.log("✅ Templates created");
 // TEST ALBUM
 // =========================
 
-const album = await prisma.albums.create({
-
-    data:{
+const album = await findOrCreate(
+    "albums",
+    { title: "Demo Wedding Album", user_id: user.id },
+    {
         title:"Demo Wedding Album",
 
         total_pages:20,
@@ -360,11 +366,76 @@ const album = await prisma.albums.create({
         }
 
     }
-
-});
+);
 
 
 console.log("✅ Album created");
+
+    // =========================
+    // PROMO CODES & GIFT CARDS
+    // =========================
+
+    await prisma.promo_codes.upsert({
+        where: { code: "VIBE10" },
+        update: {},
+        create: {
+            code: "VIBE10",
+            discount_type: "percentage",
+            discount_value: 10
+        }
+    });
+
+    await prisma.promo_codes.upsert({
+        where: { code: "SAVE20" },
+        update: {},
+        create: {
+            code: "SAVE20",
+            discount_type: "fixed",
+            discount_value: 20
+        }
+    });
+
+    await prisma.promo_codes.upsert({
+        where: { code: "WELCOME15" },
+        update: {},
+        create: {
+            code: "WELCOME15",
+            discount_type: "percentage",
+            discount_value: 15
+        }
+    });
+
+    await prisma.gift_cards.upsert({
+        where: { code: "GIFT25" },
+        update: {},
+        create: {
+            code: "GIFT25",
+            initial_balance: 25,
+            remaining_balance: 25
+        }
+    });
+
+    await prisma.gift_cards.upsert({
+        where: { code: "GIFT50" },
+        update: {},
+        create: {
+            code: "GIFT50",
+            initial_balance: 50,
+            remaining_balance: 50
+        }
+    });
+
+    await prisma.gift_cards.upsert({
+        where: { code: "GIFT100" },
+        update: {},
+        create: {
+            code: "GIFT100",
+            initial_balance: 100,
+            remaining_balance: 100
+        }
+    });
+
+    console.log("✅ Promo Codes & Gift Cards created");
 }
 
 main()

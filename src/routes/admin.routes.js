@@ -4,6 +4,7 @@ const router = express.Router();
 
 const adminController = require("../controllers/admin.controller");
 const auth = require("../middleware/auth.middleware");
+const adminMiddleware = require("../middleware/admin.middleware");
 
 
 // =======================
@@ -23,6 +24,7 @@ router.post(
 router.post(
     "/logout",
     auth,
+    adminMiddleware,
     adminController.logout
 );
 
@@ -34,6 +36,7 @@ router.post(
 router.get(
     "/profile",
     auth,
+    adminMiddleware,
     adminController.profile
 );
 

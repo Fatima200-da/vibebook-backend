@@ -39,6 +39,8 @@ const customerOrderRoutes = require("./routes/customerOrder.routes");
 const meRoutes = require("./routes/me.routes");
 const addressRoutes = require("./routes/address.routes");
 const wishlistRoutes = require("./routes/wishlist.routes");
+const promotionRoutes = require("./routes/promotion.routes");
+const paymentRoutes = require("./routes/payment.routes");
 const reviewRoutes = require("./routes/review.routes");
 
 const healthRoutes = require("./routes/health.routes");
@@ -52,16 +54,42 @@ const app = express();
 // SECURITY
 // =======================
 
-// app.use(helmet());app.use(
-  //helmet({
-  //  crossOriginResourcePolicy: false,
-  //})
-//);
-app.use(cors());
+// contentSecurityPolicy is off: this is a pure JSON API (plus Swagger UI,
+// which needs inline scripts CSP would block) - the browser-facing app is a
+// separate origin and sets its own CSP. crossOriginResourcePolicy is off
+// because the frontend loads uploaded images/covers directly via <img src>
+// from this server's /uploads on a different origin/port; Helmet's default
+// "same-origin" policy would silently break every one of those images.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: false,
+  })
+);
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // No Origin header (curl, server-to-server, same-origin) - allow.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      const err = new Error("Not allowed by CORS");
+      err.statusCode = 403;
+      return callback(err);
+    },
+  })
+);
 
 app.use(compression());
 
-app.use(morgan("dev"));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
 const limiter = rateLimit({
 
@@ -163,6 +191,8 @@ app.use("/api/me", meRoutes);
 app.use("/api/me/addresses", addressRoutes);
 app.use("/api/me/wishlist", wishlistRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/promotions", promotionRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.use("/api/health", healthRoutes);
 
@@ -180,9 +210,9 @@ app.use(
 // 404
 // =======================
 
-app.use((req, res, next) => {
-    console.log(req.method, req.originalUrl);
-    next();
+app.use((req, res) => {
+    console.log("404", req.method, req.originalUrl);
+    res.status(404).json({ success: false, message: "Not found" });
 });
 
 // =======================

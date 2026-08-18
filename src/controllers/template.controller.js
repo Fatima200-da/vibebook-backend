@@ -10,6 +10,7 @@ exports.createTemplate = async (req, res) => {
       name,
       description,
       preview_image,
+      album_size_key,
       pages,
     } = req.body;
 
@@ -18,6 +19,7 @@ exports.createTemplate = async (req, res) => {
         name,
         description,
         preview_image,
+        album_size_key,
         pages,
       },
     });
@@ -130,6 +132,7 @@ exports.updateTemplate = async (req, res) => {
       name,
       description,
       preview_image,
+      album_size_key,
       pages,
     } = req.body;
 
@@ -154,6 +157,7 @@ exports.updateTemplate = async (req, res) => {
         name,
         description,
         preview_image,
+        album_size_key,
         pages,
       },
     });

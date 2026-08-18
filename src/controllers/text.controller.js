@@ -1,5 +1,45 @@
 const prisma = require("../config/prisma");
 
+// Resolves a page id to its owning album and enforces the same ownership
+// rule as album.controller.js (USER role must own the album; ADMIN/SUPER_ADMIN
+// unrestricted). Returns { deniedStatus, deniedMessage } on failure so callers
+// can short-circuit with a single early return, or { page } on success.
+async function assertPageOwnership(pageId, req) {
+  const page = await prisma.album_pages.findUnique({
+    where: { id: pageId },
+    include: { album: true },
+  });
+
+  if (!page) {
+    return { deniedStatus: 404, deniedMessage: "Page tapılmadı" };
+  }
+
+  if (req.user.role === "USER" && page.album.user_id !== req.user.id) {
+    return { deniedStatus: 403, deniedMessage: "Access denied" };
+  }
+
+  return { page };
+}
+
+// Resolves a text layer id to its owning album (via its page) and enforces
+// the same ownership rule.
+async function assertTextOwnership(textId, req) {
+  const text = await prisma.text_layers.findUnique({
+    where: { id: textId },
+    include: { page: { include: { album: true } } },
+  });
+
+  if (!text) {
+    return { deniedStatus: 404, deniedMessage: "Text tapılmadı" };
+  }
+
+  if (req.user.role === "USER" && text.page.album.user_id !== req.user.id) {
+    return { deniedStatus: 403, deniedMessage: "Access denied" };
+  }
+
+  return { text };
+}
+
 
 // ADD TEXT
 
@@ -10,6 +50,14 @@ try{
 
 
 const {id}=req.params;
+
+const ownership = await assertPageOwnership(id, req);
+if (ownership.deniedStatus) {
+  return res.status(ownership.deniedStatus).json({
+    success: false,
+    message: ownership.deniedMessage,
+  });
+}
 
 
 const {
@@ -96,6 +144,14 @@ exports.updateText = async(req,res)=>{
 try{
 
 
+const ownership = await assertTextOwnership(req.params.id, req);
+if (ownership.deniedStatus) {
+  return res.status(ownership.deniedStatus).json({
+    success: false,
+    message: ownership.deniedMessage,
+  });
+}
+
 const text = await prisma.text_layers.update({
 
 where:{
@@ -142,6 +198,14 @@ exports.deleteText = async(req,res)=>{
 
 try{
 
+
+const ownership = await assertTextOwnership(req.params.id, req);
+if (ownership.deniedStatus) {
+  return res.status(ownership.deniedStatus).json({
+    success: false,
+    message: ownership.deniedMessage,
+  });
+}
 
 await prisma.text_layers.delete({
 

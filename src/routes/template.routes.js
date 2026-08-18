@@ -28,6 +28,36 @@ router.get(
 );
 
 
+// CREATE TEMPLATE
+router.post(
+    "/",
+    auth,
+    admin,
+    validate([
+        "name"
+    ]),
+    controller.createTemplate
+);
+
+
+// UPDATE TEMPLATE
+router.put(
+    "/:id",
+    auth,
+    admin,
+    controller.updateTemplate
+);
+
+
+// DELETE TEMPLATE
+router.delete(
+    "/:id",
+    auth,
+    admin,
+    controller.deleteTemplate
+);
+
+
 // APPLY TEMPLATE
 router.post(
     "/:id/apply",

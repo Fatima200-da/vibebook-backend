@@ -1,0 +1,55 @@
+# Render Blueprint — declarative deployment spec for VibeBook staging/production.
+#
+# This file describes the deployment; it does NOT create anything by itself.
+# Nothing is provisioned until a human connects this repo to a Render account
+# and applies the blueprint from the Render dashboard.
+#
+# Backend + Static Site are declared here (same repo). The frontend
+# (vibebook-frontend) lives in a separate repository and is deployed as its
+# own Render Static Site — see vibebook-frontend/render.yaml.
+#
+# Values written directly here are non-secret. Every secret-shaped variable
+# uses `sync: false`, which tells Render to prompt for the value in its
+# dashboard instead of reading it from this file — no secret is ever
+# committed to this repository.
+
+services:
+  - type: web
+    name: vibebook-backend
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci && npx prisma generate && npx prisma migrate deploy
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: STORAGE_PROVIDER
+        value: s3
+      - key: STORAGE_S3_ENDPOINT
+        sync: false
+      - key: STORAGE_S3_REGION
+        value: auto
+      - key: STORAGE_S3_BUCKET
+        sync: false
+      - key: STORAGE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: STORAGE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: STORAGE_S3_PUBLIC_URL_BASE
+        sync: false
+      - key: STORAGE_S3_FORCE_PATH_STYLE
+        value: "true"
+      # PAYMENT_* left undeclared on purpose: until real Epoint credentials
+      # exist, isPaymentConfigured() correctly keeps payment endpoints at
+      # 503 rather than the service failing to boot. Add these only once
+      # real credentials are available (see docs/ops/07-payment-incident-runbook.md).

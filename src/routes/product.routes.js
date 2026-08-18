@@ -83,6 +83,7 @@ router.get(
 router.get(
     "/search",
     auth,
+    admin,
     validate(productValidation.search),
     productController.searchProducts
 );
