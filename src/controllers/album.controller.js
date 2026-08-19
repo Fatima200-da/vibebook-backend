@@ -15,6 +15,29 @@ exports.createAlbum = async (req, res) => {
       total_pages,
     } = req.body;
 
+    // schema.prisma: `title String` and `total_pages Int` are both
+    // required (non-nullable); product_id/template_id are `String?`
+    // (optional). Validating before the Prisma call - rather than letting
+    // a missing/invalid value reach prisma.albums.create() - avoids a raw
+    // Prisma validation error (which exposes internal field/relation/type
+    // names) reaching the client, matching the style already used in
+    // utils/orderPricing.js's resolveOrderItems().
+    if (typeof title !== "string" || title.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "title is required",
+      });
+    }
+
+    const parsedTotalPages = Number(total_pages);
+
+    if (total_pages === undefined || total_pages === null || total_pages === "" || !Number.isInteger(parsedTotalPages) || parsedTotalPages < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "total_pages is required and must be a positive integer",
+      });
+    }
+
     const album = await prisma.albums.create({
 
       data: {
@@ -27,7 +50,7 @@ exports.createAlbum = async (req, res) => {
 
         title,
 
-        total_pages: Number(total_pages),
+        total_pages: parsedTotalPages,
 
         status: "DRAFT",
 

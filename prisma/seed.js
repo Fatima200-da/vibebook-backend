@@ -128,6 +128,28 @@ async function main() {
         }
     });
 
+    const anniversaryCategory = await prisma.categories.upsert({
+        where: {
+            name: "Anniversary"
+        },
+        update: {},
+        create: {
+            name: "Anniversary",
+            image: "uploads/categories/anniversary.jpg"
+        }
+    });
+
+    const graduationCategory = await prisma.categories.upsert({
+        where: {
+            name: "Graduation"
+        },
+        update: {},
+        create: {
+            name: "Graduation",
+            image: "uploads/categories/graduation.jpg"
+        }
+    });
+
     console.log("✅ Categories created");
 
     // =========================
@@ -153,7 +175,11 @@ async function main() {
 
             max_pages: 120,
 
-            image: "uploads/products/wedding.jpg"
+            image: "uploads/products/wedding.jpg",
+
+            thickness_key: "gold",
+
+            album_size_key: "30x30"
 
         }
     );
@@ -177,7 +203,11 @@ async function main() {
 
             max_pages: 80,
 
-            image: "uploads/products/baby.jpg"
+            image: "uploads/products/baby.jpg",
+
+            thickness_key: "mini",
+
+            album_size_key: "20x20"
 
         }
     );
@@ -201,7 +231,11 @@ async function main() {
 
             max_pages: 100,
 
-            image: "uploads/products/travel.jpg"
+            image: "uploads/products/travel.jpg",
+
+            thickness_key: "classic",
+
+            album_size_key: "30x30"
 
         }
     );
@@ -225,8 +259,153 @@ async function main() {
 
             max_pages: 60,
 
-            image: "uploads/products/classic.jpg"
+            image: "uploads/products/classic.jpg",
 
+            thickness_key: "classic",
+
+            album_size_key: "a4"
+
+        }
+    );
+
+    // Additional products (Phase 25 staging QA follow-up) - more variety
+    // per category so pagination/search/filter have real data to exercise,
+    // matching the existing findOrCreate/title-lookup pattern above so a
+    // re-run never duplicates these rows.
+
+    const weddingProduct2 = await findOrCreate(
+        "products",
+        { title: "Elegant Wedding Story" },
+        {
+            category_id: weddingCategory.id,
+            title: "Elegant Wedding Story",
+            description: "Soft-cover wedding album with a modern minimalist layout",
+            price: 95,
+            cover_type: "Soft",
+            min_pages: 20,
+            max_pages: 100,
+            image: "uploads/products/wedding-elegant.jpg",
+            thickness_key: "classic",
+            album_size_key: "a4"
+        }
+    );
+
+    const babyProduct2 = await findOrCreate(
+        "products",
+        { title: "First Year Journal" },
+        {
+            category_id: babyCategory.id,
+            title: "First Year Journal",
+            description: "A month-by-month keepsake album for baby's first year",
+            price: 65,
+            cover_type: "Soft",
+            min_pages: 20,
+            max_pages: 60,
+            image: "uploads/products/baby-first-year.jpg",
+            thickness_key: "mini",
+            album_size_key: "20x20"
+        }
+    );
+
+    const travelProduct2 = await findOrCreate(
+        "products",
+        { title: "Adventure Diary" },
+        {
+            category_id: travelCategory.id,
+            title: "Adventure Diary",
+            description: "Rugged hard-cover album built for road-trip and hiking memories",
+            price: 110,
+            cover_type: "Hard",
+            min_pages: 24,
+            max_pages: 120,
+            image: "uploads/products/travel-adventure.jpg",
+            thickness_key: "gold",
+            album_size_key: "30x30"
+        }
+    );
+
+    const classicProduct2 = await findOrCreate(
+        "products",
+        { title: "Timeless Collection" },
+        {
+            category_id: classicCategory.id,
+            title: "Timeless Collection",
+            description: "Premium hard-cover album with an understated, timeless design",
+            price: 150,
+            cover_type: "Hard",
+            min_pages: 20,
+            max_pages: 100,
+            image: "uploads/products/classic-timeless.jpg",
+            thickness_key: "platinum",
+            album_size_key: "a4"
+        }
+    );
+
+    const anniversaryProduct = await findOrCreate(
+        "products",
+        { title: "Anniversary Keepsake" },
+        {
+            category_id: anniversaryCategory.id,
+            title: "Anniversary Keepsake",
+            description: "A celebratory hard-cover album for marking years together",
+            price: 130,
+            cover_type: "Hard",
+            min_pages: 20,
+            max_pages: 100,
+            image: "uploads/products/anniversary-keepsake.jpg",
+            thickness_key: "gold",
+            album_size_key: "30x30"
+        }
+    );
+
+    const anniversaryProduct2 = await findOrCreate(
+        "products",
+        { title: "Golden Years" },
+        {
+            category_id: anniversaryCategory.id,
+            title: "Golden Years",
+            description: "Soft-cover anniversary album with a warm, classic palette",
+            price: 85,
+            cover_type: "Soft",
+            min_pages: 20,
+            max_pages: 60,
+            image: "uploads/products/anniversary-golden-years.jpg",
+            thickness_key: "classic",
+            album_size_key: "20x20"
+        }
+    );
+
+    const graduationProduct = await findOrCreate(
+        "products",
+        { title: "Graduation Milestones" },
+        {
+            category_id: graduationCategory.id,
+            title: "Graduation Milestones",
+            description: "Hard-cover album celebrating a full academic journey",
+            price: 100,
+            cover_type: "Hard",
+            min_pages: 20,
+            max_pages: 80,
+            image: "uploads/products/graduation-milestones.jpg",
+            thickness_key: "classic",
+            album_size_key: "a4"
+        }
+    );
+
+    const graduationProduct2 = await findOrCreate(
+        "products",
+        { title: "Class of Memories" },
+        {
+            category_id: graduationCategory.id,
+            title: "Class of Memories",
+            description: "Compact soft-cover album for graduation photos and keepsakes",
+            price: 60,
+            cover_type: "Soft",
+            min_pages: 20,
+            max_pages: 50,
+            image: "uploads/products/graduation-class-of-memories.jpg",
+            thickness_key: "mini",
+            album_size_key: "20x20"
         }
     );
 
