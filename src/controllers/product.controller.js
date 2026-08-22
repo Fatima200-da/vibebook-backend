@@ -471,6 +471,12 @@ exports.updateProduct = async(req,res)=>{
 
         }
 
+        else if(req.body.image){
+
+            data.image=req.body.image;
+
+        }
+
 
 
 

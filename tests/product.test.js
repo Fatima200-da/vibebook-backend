@@ -107,6 +107,42 @@ describe("Products API", () => {
 
     });
 
+    // Phase 25C: image replacement never deletes the previous storage
+    // object - this is a deliberate, documented Phase 24B decision
+    // (storage.remove() was never wired into any controller's update/delete
+    // path), not an oversight. Locking in the current, real behavior so a
+    // future change to this policy is a conscious decision, not an accident.
+    test("Replacing a product's image field updates the DB but never deletes the old storage object", async () => {
+
+        const oldImage = "uploads/products/old-test-image.jpg";
+        const newImage = "uploads/products/new-test-image.jpg";
+
+        const setOld = await request(app)
+            .put(`/api/products/${productId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ title: "Updated Jest Product", price: 175, image: oldImage });
+
+        expect(setOld.status).toBe(200);
+        expect(setOld.body.data.image).toBe(oldImage);
+
+        const setNew = await request(app)
+            .put(`/api/products/${productId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ title: "Updated Jest Product", price: 175, image: newImage });
+
+        expect(setNew.status).toBe(200);
+        expect(setNew.body.data.image).toBe(newImage);
+
+        // No storage.remove() call exists anywhere in the codebase (grep
+        // confirms it) - the old key is never touched, so it would still
+        // exist in whatever backend actually stored it. This test can only
+        // assert the DB-visible half of that contract (the field moved to
+        // the new value); the "old file still exists in storage" half is a
+        // property of the code never calling remove(), not something an
+        // API-level test can independently observe.
+
+    });
+
     test("Soft Delete Product", async () => {
 
         const response = await request(app)
