@@ -50,6 +50,23 @@ const compression = require("compression");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const app = express();
+
+// Render (like Heroku/Railway/Fly's built-in proxy) always sits exactly one
+// reverse-proxy hop in front of this process and sets X-Forwarded-For on
+// every request. Without telling Express to trust that one hop, two things
+// break: req.ip resolves to Render's internal proxy IP (not the real
+// client), and express-rate-limit refuses to start up correctly, throwing
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR because it sees a forwarded-for header
+// it was never told to trust.
+//
+// `1` (not `true`) is deliberate: `true` trusts an unlimited chain of
+// proxies, which means a malicious client could set its own X-Forwarded-For
+// and impersonate any IP, defeating IP-based rate limiting entirely. `1`
+// trusts exactly Render's own edge proxy and nothing beyond it, matching
+// the real, single-hop topology - a client-supplied X-Forwarded-For is
+// still ignored beyond that one trusted hop.
+app.set("trust proxy", 1);
+
 // =======================
 // SECURITY
 // =======================
@@ -100,6 +117,16 @@ const limiter = rateLimit({
     standardHeaders: true,
 
     legacyHeaders: false,
+
+    // Render's own platform health check polls GET /api/health on a short,
+    // fixed interval, from Render's infrastructure rather than a real
+    // client - sharing the general 100-req/15min budget with real traffic
+    // meant Render's own routine polling could (and did, in production)
+    // exhaust the budget and make the health check start reporting 429,
+    // which looks like the service is down when it isn't. Skipped here
+    // rather than removing the limiter from /api/health entirely, so every
+    // other route under /api stays exactly as protected as before.
+    skip: (req) => req.path === "/health",
 
     message: {
 
