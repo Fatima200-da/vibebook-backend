@@ -5,6 +5,31 @@ const os = require("os");
 
 const { generateKey, ALLOWED_EXTENSIONS } = require("../src/services/storage/keyGenerator");
 
+// Phase 25C.2 - the Supabase adapter is tested by mocking the SDK boundary
+// (@supabase/supabase-js's createClient) rather than a hand-rolled mock
+// HTTP server, since jest.mock() at the SDK level is the standard way to
+// test a thin wrapper around a third-party client without reimplementing
+// its real network protocol. No real Supabase project or credential is
+// ever used - see storageConfig's own isSupabaseConfigured() test below
+// for proof a real credential isn't even read in the failure-path tests.
+jest.mock("@supabase/supabase-js", () => {
+    const mockUpload = jest.fn();
+    const mockRemove = jest.fn();
+    const mockList = jest.fn();
+    const mockGetPublicUrl = jest.fn();
+    const mockFrom = jest.fn(() => ({
+        upload: mockUpload,
+        remove: mockRemove,
+        list: mockList,
+        getPublicUrl: mockGetPublicUrl,
+    }));
+    const mockCreateClient = jest.fn(() => ({ storage: { from: mockFrom } }));
+    return {
+        __mockFns: { mockUpload, mockRemove, mockList, mockGetPublicUrl, mockFrom, mockCreateClient },
+        createClient: mockCreateClient,
+    };
+});
+
 describe("storage/keyGenerator (STEP4 - filename & path security)", () => {
 
     test("produces a fresh, non-predictable key per call - never the original filename", () => {
@@ -270,6 +295,168 @@ describe("storage config (STEP9 - local dev fallback preserved, s3 mode requires
 
         const storage = require("../src/services/storage");
         expect(() => storage.save({ key: "x.jpg", localPath: "/nowhere.jpg" })).toThrow();
+
+    });
+
+    test("STORAGE_PROVIDER=supabase with missing SUPABASE_* variables throws instead of silently falling back to local", () => {
+
+        jest.resetModules();
+        process.env.STORAGE_PROVIDER = "supabase";
+        delete process.env.SUPABASE_URL;
+        delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+        delete process.env.SUPABASE_STORAGE_BUCKET;
+
+        const storage = require("../src/services/storage");
+        expect(() => storage.save({ key: "x.jpg", localPath: "/nowhere.jpg" })).toThrow(
+            /SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET/
+        );
+
+    });
+
+    test("An unrecognized STORAGE_PROVIDER value fails loudly instead of silently defaulting to local", () => {
+
+        jest.resetModules();
+        process.env.STORAGE_PROVIDER = "dropbox";
+
+        const storage = require("../src/services/storage");
+        expect(() => storage.save({ key: "x.jpg", localPath: "/nowhere.jpg" })).toThrow(
+            /Unknown STORAGE_PROVIDER "dropbox"/
+        );
+
+    });
+
+});
+
+describe("storage/supabaseStorageAdapter (Phase 25C.2 - Supabase Storage via mocked SDK)", () => {
+
+    const REAL_ENV = {
+        STORAGE_PROVIDER: "supabase",
+        SUPABASE_URL: "https://mock-project.supabase.co",
+        SUPABASE_SERVICE_ROLE_KEY: "mock-service-role-key-not-real",
+        SUPABASE_STORAGE_BUCKET: "vibebook-assets",
+    };
+
+    function setSupabaseEnv() {
+        Object.assign(process.env, REAL_ENV);
+    }
+
+    let tmpFile;
+
+    beforeAll(() => {
+        tmpFile = path.join(os.tmpdir(), `phase25c2-mock-upload-${Date.now()}.jpg`);
+        fs.writeFileSync(tmpFile, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]));
+    });
+
+    afterAll(() => {
+        if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    });
+
+    test("STORAGE_PROVIDER=supabase selects the Supabase adapter (proven by it calling into the mocked SDK, not local disk)", async () => {
+
+        jest.resetModules();
+        setSupabaseEnv();
+
+        const { __mockFns } = require("@supabase/supabase-js");
+        __mockFns.mockUpload.mockResolvedValueOnce({ error: null });
+        __mockFns.mockGetPublicUrl.mockReturnValueOnce({
+            data: { publicUrl: "https://mock-project.supabase.co/storage/v1/object/public/vibebook-assets/x.jpg" },
+        });
+
+        const storage = require("../src/services/storage");
+        const result = await storage.save({ key: "x.jpg", localPath: tmpFile });
+
+        expect(__mockFns.mockCreateClient).toHaveBeenCalledWith(
+            "https://mock-project.supabase.co",
+            "mock-service-role-key-not-real",
+            expect.any(Object)
+        );
+        expect(__mockFns.mockFrom).toHaveBeenCalledWith("vibebook-assets");
+        expect(result.url).toContain("vibebook-assets");
+
+    });
+
+    test("successful upload with a mocked Supabase client returns {key, url} in the same shape as the other adapters", async () => {
+
+        jest.resetModules();
+        setSupabaseEnv();
+
+        const { __mockFns } = require("@supabase/supabase-js");
+        __mockFns.mockUpload.mockResolvedValueOnce({ error: null });
+        __mockFns.mockGetPublicUrl.mockReturnValueOnce({
+            data: { publicUrl: "https://mock-project.supabase.co/storage/v1/object/public/vibebook-assets/products/mock-key.jpg" },
+        });
+
+        const storage = require("../src/services/storage");
+        const result = await storage.save({ key: "products/mock-key.jpg", localPath: tmpFile });
+
+        expect(result).toEqual({
+            key: "products/mock-key.jpg",
+            url: "https://mock-project.supabase.co/storage/v1/object/public/vibebook-assets/products/mock-key.jpg",
+        });
+
+        expect(__mockFns.mockUpload).toHaveBeenCalledWith(
+            "products/mock-key.jpg",
+            expect.any(Buffer),
+            expect.objectContaining({ contentType: "image/jpeg", upsert: false })
+        );
+
+    });
+
+    test("Supabase upload failure surfaces a clean error without leaking the service-role key", async () => {
+
+        jest.resetModules();
+        setSupabaseEnv();
+
+        const { __mockFns } = require("@supabase/supabase-js");
+        __mockFns.mockUpload.mockResolvedValueOnce({ error: { message: "The resource already exists" } });
+
+        const storage = require("../src/services/storage");
+
+        await expect(storage.save({ key: "x.jpg", localPath: tmpFile })).rejects.toThrow(
+            "Supabase storage upload failed: The resource already exists"
+        );
+
+        // The one thing this test exists to prove: no matter what the SDK
+        // throws, the real credential never appears in the error surfaced
+        // to a caller (and, by extension, could never reach an API response).
+        try {
+            await storage.save({ key: "x.jpg", localPath: tmpFile });
+        } catch (err) {
+            expect(err.message).not.toContain(REAL_ENV.SUPABASE_SERVICE_ROLE_KEY);
+        }
+
+    });
+
+    test("remove() calls the SDK with the configured bucket and key", async () => {
+
+        jest.resetModules();
+        setSupabaseEnv();
+
+        const { __mockFns } = require("@supabase/supabase-js");
+        __mockFns.mockRemove.mockResolvedValueOnce({ error: null });
+
+        const storage = require("../src/services/storage");
+        const result = await storage.remove("products/gone.jpg");
+
+        expect(result).toBe(true);
+        expect(__mockFns.mockFrom).toHaveBeenCalledWith("vibebook-assets");
+        expect(__mockFns.mockRemove).toHaveBeenCalledWith(["products/gone.jpg"]);
+
+    });
+
+    test("exists() reports true only when list() returns a matching filename", async () => {
+
+        jest.resetModules();
+        setSupabaseEnv();
+
+        const { __mockFns } = require("@supabase/supabase-js");
+        __mockFns.mockList.mockResolvedValueOnce({ data: [{ name: "found.jpg" }], error: null });
+
+        const storage = require("../src/services/storage");
+        expect(await storage.exists("found.jpg")).toBe(true);
+
+        __mockFns.mockList.mockResolvedValueOnce({ data: [], error: null });
+        expect(await storage.exists("missing.jpg")).toBe(false);
 
     });
 
