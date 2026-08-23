@@ -36,7 +36,7 @@ exports.getOrders = async (req, res) => {
             where,
 
             include: {
-                users: true,
+                users: { select: { id: true, full_name: true, email: true } },
                 payments: {
                     orderBy: { created_at: "desc" },
                     take: 1
@@ -96,7 +96,7 @@ exports.getOrderById = async (req, res) => {
             },
 
             include: {
-                users: true,
+                users: { select: { id: true, full_name: true, email: true } },
                 payments: {
                     orderBy: { created_at: "desc" }
                 }
@@ -328,7 +328,7 @@ exports.searchOrders = async (req, res) => {
 
             include: {
 
-                users: true
+                users: { select: { id: true, full_name: true, email: true } }
 
             },
 

@@ -117,7 +117,7 @@ exports.getAlbums = async (req, res) => {
         created_at: "desc",
       },
       include: {
-        users: true,
+        users: { select: { id: true, full_name: true, email: true } },
         products: true,
         templates: true,
       },
@@ -158,7 +158,7 @@ exports.getAlbum = async (req, res) => {
 
       include: {
 
-        users: true,
+        users: { select: { id: true, full_name: true, email: true } },
 
         products: true,
 
@@ -842,7 +842,7 @@ exports.previewAlbum = async (req, res) => {
 
       include: {
 
-        users: true,
+        users: { select: { id: true, full_name: true, email: true } },
 
         products: true,
 

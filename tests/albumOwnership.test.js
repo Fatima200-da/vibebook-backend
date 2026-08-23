@@ -119,6 +119,7 @@ describe("Album Ownership Scoping", () => {
         let pageId;
         let photoId;
         let textId;
+        let bPageId;
 
         beforeAll(async () => {
 
@@ -140,6 +141,21 @@ describe("Album Ownership Scoping", () => {
             pageId = page.id;
             photoId = page.photos[0].id;
             textId = page.texts[0].id;
+
+            // A real page owned by B, so the "A tries to move a photo onto
+            // a page A doesn't own" test targets an actual attack scenario
+            // rather than a merely-nonexistent id.
+            const bAlbum = await request(app)
+                .post("/api/albums")
+                .set("Authorization", `Bearer ${tokenB}`)
+                .send({ title: "B's Private Album", total_pages: 20 });
+
+            const bSaveResp = await request(app)
+                .put(`/api/albums/${bAlbum.body.data.id}`)
+                .set("Authorization", `Bearer ${tokenB}`)
+                .send({ title: "B's Private Album", pages: [{ pageNumber: 1, photos: [], texts: [] }] });
+
+            bPageId = bSaveResp.body.data.pages[0].id;
 
         });
 
@@ -187,6 +203,129 @@ describe("Album Ownership Scoping", () => {
                 .delete(`/api/editor/photos/${photoId}`)
                 .set("Authorization", `Bearer ${tokenB}`);
             expect(deleteResp.status).toBe(403);
+        });
+
+        // Phase 25D: this endpoint previously threw a raw Prisma 500 for
+        // EVERY caller (including the rightful owner) because it wrote
+        // fields the photos table no longer has. The 403 test above only
+        // ever exercised the ownership-check short-circuit, so it never
+        // caught this - the request never got far enough to reach the
+        // broken prisma.photos.create() call. This test proves the
+        // authorized path actually works now, against the real schema.
+        test("Customer A can successfully add a photo to A's own page", async () => {
+
+            const response = await request(app)
+                .post(`/api/editor/pages/${pageId}/photos`)
+                .set("Authorization", `Bearer ${tokenA}`)
+                .send({ url: "uploads/test-add-photo.jpg", x: 5, y: 5, width: 50, height: 60, rotation: 0 });
+
+            expect(response.status).toBe(200);
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.page_id).toBe(pageId);
+            expect(response.body.data.url).toBe("uploads/test-add-photo.jpg");
+            expect(response.body.data.position).toEqual(
+                expect.objectContaining({ x: 5, y: 5, width: 50, height: 60, rotation: 0 })
+            );
+
+            // No Prisma internals in a successful response either.
+            const raw = JSON.stringify(response.body);
+            expect(raw).not.toMatch(/prisma\./i);
+            expect(raw).not.toMatch(/Unknown argument/i);
+
+        });
+
+        // Phase 25D.1: updatePhoto used `data: req.body` directly - a pure
+        // mass-assignment hole. Any field the caller sent reached Prisma
+        // unfiltered, including page_id, which would have let the owner of
+        // a photo reassign it onto any page id at all - the ownership
+        // check only ever validated the photo being updated, never the
+        // destination the request tried to move it to.
+        describe("updatePhoto mass-assignment hardening", () => {
+
+            test("Customer A can update legitimate fields (url, position) on A's own photo", async () => {
+
+                const response = await request(app)
+                    .put(`/api/editor/photos/${photoId}`)
+                    .set("Authorization", `Bearer ${tokenA}`)
+                    .send({ url: "uploads/updated.png", x: 42, y: 43, width: 99, height: 88, rotation: 15 });
+
+                expect(response.status).toBe(200);
+                expect(response.body.success).toBe(true);
+                expect(response.body.data.url).toBe("uploads/updated.png");
+                expect(response.body.data.position).toEqual(
+                    expect.objectContaining({ x: 42, y: 43, width: 99, height: 88, rotation: 15 })
+                );
+
+            });
+
+            test("A partial position update merges onto the existing position instead of wiping it", async () => {
+
+                // Establish a known baseline with several position fields set.
+                await request(app)
+                    .put(`/api/editor/photos/${photoId}`)
+                    .set("Authorization", `Bearer ${tokenA}`)
+                    .send({ x: 10, y: 10, width: 20, height: 20, name: "baseline-name", locked: true });
+
+                // Now send only x/y, as a drag operation would.
+                const response = await request(app)
+                    .put(`/api/editor/photos/${photoId}`)
+                    .set("Authorization", `Bearer ${tokenA}`)
+                    .send({ x: 55, y: 60 });
+
+                expect(response.status).toBe(200);
+                expect(response.body.data.position).toEqual(
+                    expect.objectContaining({
+                        x: 55, y: 60,
+                        width: 20, height: 20,             // untouched by this request
+                        name: "baseline-name", locked: true, // untouched by this request
+                    })
+                );
+
+            });
+
+            test("Customer A cannot change the photo's page_id, even to a page A does not own - rejected with 400", async () => {
+
+                const response = await request(app)
+                    .put(`/api/editor/photos/${photoId}`)
+                    .set("Authorization", `Bearer ${tokenA}`)
+                    .send({ page_id: bPageId });
+
+                expect(response.status).toBe(400);
+                expect(response.body.success).toBe(false);
+
+                // Confirm the DB record actually still belongs to its
+                // original page - not just that the request was rejected.
+                const check = await request(app)
+                    .put(`/api/editor/photos/${photoId}`)
+                    .set("Authorization", `Bearer ${tokenA}`)
+                    .send({ x: 1 });
+                expect(check.body.data.page_id).toBe(pageId);
+
+            });
+
+            test("Customer A cannot inject ownership/system fields through the update payload - rejected with 400", async () => {
+
+                const response = await request(app)
+                    .put(`/api/editor/photos/${photoId}`)
+                    .set("Authorization", `Bearer ${tokenA}`)
+                    .send({ user_id: "some-other-user-id", album_id: "some-other-album-id", owner_id: "x" });
+
+                expect(response.status).toBe(400);
+                expect(response.body.success).toBe(false);
+
+            });
+
+            test("Customer B still cannot update A's photo at all, regardless of payload", async () => {
+
+                const response = await request(app)
+                    .put(`/api/editor/photos/${photoId}`)
+                    .set("Authorization", `Bearer ${tokenB}`)
+                    .send({ url: "hijacked-again.png" });
+
+                expect(response.status).toBe(403);
+
+            });
+
         });
 
         test("Customer B cannot add/update/delete a text layer on A's page", async () => {
