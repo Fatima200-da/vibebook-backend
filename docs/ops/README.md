@@ -32,6 +32,7 @@ doldurulacaq.
 | 12 | [12-credential-rotation.md](12-credential-rotation.md) | Bütün credential-lər üçün rotation proseduru |
 | 13 | [13-production-handover.md](13-production-handover.md) | Yekun handover sənədi (bütün bölmələrin xülasəsi) |
 | 14 | [14-final-deployment-checklist.md](14-final-deployment-checklist.md) | Boş final deployment checklist (Phase 30) |
+| 15 | [15-client-asset-requirements.md](15-client-asset-requirements.md) | 22 real şəkil üçün müştəri tələbləri (Phase 25C.3) |
 
 ## Status
 
