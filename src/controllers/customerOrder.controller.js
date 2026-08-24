@@ -21,8 +21,54 @@ exports.createOrder = async (req, res) => {
             shipping_address,
             delivery_method,
             discount_code,
-            discount_kind
+            discount_kind,
+            idempotency_key
         } = req.body;
+
+        // Phase 26B.1: a fresh UUID the client mints once per checkout
+        // submission attempt (not per request - a retry of the same
+        // attempt reuses it). Optional rather than required: the frontend
+        // does not send this yet (that's a separate follow-up), and every
+        // pre-existing caller of this endpoint (other test suites, and any
+        // client already in the field) must keep working exactly as before
+        // when it's omitted. A request without a key gets none of this
+        // protection, same as before this phase - only opted-in callers
+        // gain the guarantee.
+        const hasIdempotencyKey = typeof idempotency_key === "string" && idempotency_key.trim().length > 0;
+
+        if (hasIdempotencyKey) {
+
+            // Cheap early exit for the common case (a retry arriving after the
+            // first request already finished) - not the actual safety
+            // guarantee, which is the @unique constraint + catch below. This
+            // just avoids repeating pricing/discount work for an obviously-
+            // already-handled submission.
+            const existingByKey = await prisma.orders.findUnique({
+                where: { idempotency_key },
+                include: { order_items: true }
+            });
+
+            if (existingByKey) {
+
+                if (existingByKey.user_id !== req.user.id) {
+                    // Someone else's key (an astronomically unlikely UUID
+                    // collision, or a client sending a guessed/reused key) -
+                    // never hand back another customer's order.
+                    return res.status(409).json({
+                        success: false,
+                        message: "idempotency_key already in use"
+                    });
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Order already exists for this idempotency key",
+                    data: existingByKey
+                });
+
+            }
+
+        }
 
         // Price and title are never trusted from the client - always resolved
         // server-side from the real product (and album, if the item is a
@@ -113,6 +159,7 @@ exports.createOrder = async (req, res) => {
                     shipping_name: shipping_name || null,
                     shipping_phone: shipping_phone || null,
                     shipping_address: shipping_address || null,
+                    idempotency_key: hasIdempotencyKey ? idempotency_key : null,
 
                     order_items: {
                         create: resolvedItems
@@ -138,6 +185,32 @@ exports.createOrder = async (req, res) => {
     } catch (err) {
 
         console.log(err);
+
+        // Phase 26B.1: this is the actual race-safety guarantee, not the
+        // early-exit check above. Two concurrent requests with the same
+        // idempotency_key can both pass the pre-check (neither sees the
+        // other's row yet) and both reach this transaction - Postgres's
+        // unique constraint on orders.idempotency_key then guarantees only
+        // one INSERT actually commits; the loser's transaction (including
+        // any discount-usage update it made inside the same transaction,
+        // per Prisma's automatic rollback) fails here with P2002, and a
+        // fresh query now finds the winner's already-committed row.
+        if (err.code === "P2002" && err.meta?.target?.includes?.("idempotency_key")) {
+
+            const existing = await prisma.orders.findUnique({
+                where: { idempotency_key: req.body.idempotency_key },
+                include: { order_items: true }
+            });
+
+            if (existing && existing.user_id === req.user.id) {
+                return res.status(200).json({
+                    success: true,
+                    message: "Order already exists for this idempotency key",
+                    data: existing
+                });
+            }
+
+        }
 
         if (err.httpStatus) {
 

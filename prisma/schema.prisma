@@ -350,6 +350,17 @@ model orders {
   shipping_phone String?
   shipping_address String?
 
+  // Phase 26B.1: client-generated per-checkout-attempt key (a fresh UUID
+  // minted once when the customer starts a checkout submission, reused for
+  // any retry of that same submission - never regenerated for a genuinely
+  // new checkout). @unique is what actually makes this race-safe: Postgres
+  // itself rejects a second concurrent INSERT with the same key, which is
+  // the only way to close the race window a "check then insert" approach
+  // can't (two requests both passing a pre-insert existence check before
+  // either commits). Nullable rather than required at the schema level so
+  // this migration can never fail against any pre-existing order row.
+  idempotency_key String? @unique
+
   users users? @relation(fields: [user_id], references: [id])
 
   payments payments[]
